@@ -4,7 +4,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 /* ---------- API layer (mirrors v1 mock/live shape) ---------- */
-const SCRIPT_URL = https://script.google.com/macros/s/AKfycbyIVGJU9q8O2-rcRCt0XmAuj-SdU-nAhmgB8CgycdxhkCd12mvRR8XASgE5sEo3iqvV/exec;
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby18pjM3M-Rwa_P9HgULS_cNBKgkElkS1rUdYEhmvV_7ArmfmIPRGn7kXnzQHnccYok/exec";
 const USE_MOCK = SCRIPT_URL.startsWith("PASTE_");
 async function apiGet() {
   if (USE_MOCK) return window.SHAS_MOCK;
