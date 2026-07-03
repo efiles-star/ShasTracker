@@ -6,7 +6,7 @@ function WebApp() {
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate } = A;
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent } = A;
   const pct = window.pct;
 
   const shellStyle = { "--acc": acc.c, "--acc-d": acc.d };
@@ -17,7 +17,7 @@ function WebApp() {
     </div>
   );
 
-  const viewTitle = view === "path" ? S.navPath : view === "stats" ? S.navStats : S.navSearch;
+  const viewTitle = view === "path" ? S.navPath : view === "stats" ? S.navStats : view === "search" ? S.navSearch : S.navNow;
 
   return (
     <div className="duoweb" style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
@@ -28,7 +28,7 @@ function WebApp() {
         </div>
 
         <nav className="webnav">
-          {[["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search]].map(([k, label, ic]) => (
+          {[["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search], ["now", S.navNow, window.DP.pin]].map(([k, label, ic]) => (
             <button key={k} className={"webnavbtn" + (view === k ? " on" : "")} onClick={() => setPersistView(k)}>
               <span className="ic"><window.DIcon d={ic} w={24} s={2.3} /></span><span>{label}</span>
             </button>
@@ -54,7 +54,9 @@ function WebApp() {
             collapsedSed={collapsedSed} collapsedMas={collapsedMas} toggleSeder={toggleSeder} toggleMasechta={toggleMasechta} />}
           {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} />}
           {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle}
-            search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter} />}
+            search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter}
+            data={data} onSetCurrent={requestSetCurrent} />}
+          {view === "now" && <window.NowLearningView S={S} lang={lang} groups={groups} data={data} person={person} onToggle={onToggle} onSetCurrent={requestSetCurrent} />}
         </div>
       </main>
 

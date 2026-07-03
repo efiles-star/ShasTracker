@@ -6,10 +6,11 @@ const dAgoISO = n => { const d = new Date(D_TODAY); d.setDate(d.getDate() - n); 
 const dpct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
 /* ================================ SEARCH ================================ */
-function SearchView({ S, lang, groups, person, onToggle, search, setSearch, status, setStatus, sederFilter, setSederFilter }) {
+function SearchView({ S, lang, groups, person, onToggle, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent }) {
   const sederName = window.sederName, masName = window.masName;
   const q = search.trim().toLowerCase();
   const SEDER_ORDER = window.SEDER_ORDER;
+  const currentMasechta = data.current ? data.current[person] : null;
 
   const cards = [];
   groups.forEach((g, si) => {
@@ -46,11 +47,18 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
 
       {cards.length === 0
         ? <div className="searchhint">{status === "remaining" ? S.allDoneHint : status === "done" ? S.noneDone : S.noHits}</div>
-        : cards.map(c => (
+        : cards.map(c => {
+          const isPinned = currentMasechta === c.masechta;
+          return (
           <div className="mcard" key={c.seder + c.masechta}>
             <div className="mh">
               <span className="dot" style={{ background: c.col.c }} />
               <span className="nm">{masName(c.masechta, lang)}</span>
+              <button className={"pinbtn" + (isPinned ? " on" : "")}
+                title={isPinned ? S.unpinCurrent : S.setCurrent}
+                onClick={() => onSetCurrent(isPinned ? null : c.masechta)}>
+                <window.DIcon d={window.DP.pin} w={16} s={2.2} fill={isPinned} />
+              </button>
               <span className="ct">{c.done}/{c.total}</span>
             </div>
             <div className="mtiles">
@@ -64,7 +72,8 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
     </div>
   );
 }
@@ -211,4 +220,75 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
   );
 }
 
-Object.assign(window, { SearchView, StatsView });
+/* ============================ NOW LEARNING ============================ */
+function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent }) {
+  const masName = window.masName, sederName = window.sederName, PCOL = window.PCOL;
+  const DIcon = window.DIcon, DP = window.DP;
+
+  const findMasechta = name => {
+    for (const g of groups) {
+      const m = g.masechtos.find(x => x.masechta === name);
+      if (m) return { g, m };
+    }
+    return null;
+  };
+
+  const people = [
+    { key: "eman", label: S.abba, initial: lang === "he" ? "א" : "A" },
+    { key: "yehuda", label: S.yehuda, initial: lang === "he" ? "י" : "Y" },
+  ];
+
+  return (
+    <div className="nowview">
+      {people.map(pp => {
+        const isActive = pp.key === person;
+        const name = data.current ? data.current[pp.key] : null;
+        const found = name ? findMasechta(name) : null;
+        const col = found ? window.sederColor(window.SEDER_ORDER.indexOf(found.g.seder)) : null;
+        const doneCount = found ? found.m.perakim.filter(p => p[pp.key + "_done"]).length : 0;
+        const Tile = isActive ? "button" : "div";
+
+        return (
+          <div className="nowcard" key={pp.key}>
+            <div className="nowhead">
+              <span className="av" style={{ background: PCOL[pp.key].c }}>{pp.initial}</span>
+              <span className="nm">{pp.label}</span>
+              {isActive && found && (
+                <button className="nowclear" onClick={() => onSetCurrent(null)}>{S.unpinCurrent}</button>
+              )}
+            </div>
+
+            {!found ? (
+              <div className="nowempty">{S.noCurrent} {isActive && S.noCurrentHint}</div>
+            ) : (
+              <>
+                <div className="unit" style={{ background: col.c, color: col.on }}>
+                  <span className="info">
+                    <span className="k">{window.SEDER_EMOJI[found.g.seder] || ""} {sederName(found.g.seder, lang)}</span>
+                    <span className="m">{window.MAS_EMOJI[found.m.masechta] || ""} {masName(found.m.masechta, lang)}</span>
+                  </span>
+                  <span className={"crown" + (doneCount === found.m.perakim.length ? " full" : "")}>
+                    <DIcon d={DP.crown} w={16} fill />{doneCount}/{found.m.perakim.length}
+                  </span>
+                </div>
+                <div className="mtiles">
+                  {found.m.perakim.map(p => {
+                    const done = p[pp.key + "_done"];
+                    return (
+                      <Tile key={p.perek_id} className={"mtile" + (done ? " done" : "")}
+                        style={done ? { background: col.c, color: col.on, boxShadow: "0 3px 0 " + col.d } : null}
+                        onClick={isActive ? () => onToggle(p) : undefined}>{p.perek_num}</Tile>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {!isActive && <div className="nowhint">{S.switchToEdit(pp.label)}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { SearchView, StatsView, NowLearningView });
