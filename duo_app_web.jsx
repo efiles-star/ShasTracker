@@ -5,7 +5,8 @@ function WebApp() {
   const { tw, setTweak, lang, S, rtl, switchLang, data, view, setPersistView, person, setPersistPerson,
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
-    groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL } = A;
+    groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
+    authOpen, authError, submitWriteKey, closeAuthGate } = A;
   const pct = window.pct;
 
   const shellStyle = { "--acc": acc.c, "--acc-d": acc.d };
@@ -90,6 +91,7 @@ function WebApp() {
       </aside>
 
       <window.Celebration cele={cele} onClose={() => setCele(null)} />
+      <window.AuthGate open={authOpen} error={authError} onSubmit={submitWriteKey} onCancel={closeAuthGate} S={S} />
       <div className={"toast" + (toast ? " show" : "")}>{toast}</div>
 
       <window.TweaksPanel>
