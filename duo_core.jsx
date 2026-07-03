@@ -35,6 +35,25 @@ const sederName = (s, lang) => (lang === "he" ? (window.SEDER_HE[s] || s) : s);
 const masName = (m, lang) => (lang === "he" ? (window.MAS_HE[m] || m) : m);
 const pct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
+/* ---------- mishnayos (sub-task) helpers ---------- */
+/* The API stores each person's learned mishnayos per perek as "1,3,4"; the mock
+   dataset ships arrays. Counts come from MISHNA_COUNTS (fixed structure). */
+const parseMishnayos = v => (Array.isArray(v) ? v : String(v == null ? "" : v).split(/[\s,;]+/))
+  .map(Number).filter(n => Number.isInteger(n) && n > 0);
+function hydratePerakim(raw) {
+  const MC = window.MISHNA_COUNTS || {};
+  return { perakim: raw.perakim.map(p => ({
+    ...p,
+    mishna_count: (MC[p.masechta] || [])[p.perek_num - 1] || 0,
+    eman_mishnayos: parseMishnayos(p.eman_mishnayos),
+    yehuda_mishnayos: parseMishnayos(p.yehuda_mishnayos),
+  })) };
+}
+const allMishnayos = p => Array.from({ length: p.mishna_count }, (_, i) => i + 1);
+/* A done perek means every mishna is learned, even if the list column is blank
+   (seeded rows). Invariant kept on write: done ⇔ list is complete. */
+const learnedMishnayos = (p, who) => (p[who + "_done"] ? allMishnayos(p) : p[who + "_mishnayos"]);
+
 /* ---------- person accents ---------- */
 const PCOL = { eman: { c: "#58cc02", d: "#58a700" }, yehuda: { c: "#1cb0f6", d: "#1899d6" } };
 
@@ -50,6 +69,9 @@ const STR = {
     fullSeder: "An entire Seder finished", keepGoing: "Keep going", onward: "Onward!",
     xpPerek: "+1 perek", xpN: n => "+" + n + " perakim",
     unmarked: "Unmarked",
+    perekWord: "Perek", mishnayosWord: "mishnayos",
+    mishnaProgress: (k, n) => k + "/" + n + " mishnayos",
+    markPerek: "Mark whole perek", unmarkPerek: "Unmark whole perek",
     shasDone: "All of Shas!", shasDoneSub: who => who + " has learned every perek. Chazak!",
     searchPh: "Search a masechta…", stAll: "All", stLeft: "Left", stDone: "Done", allShas: "All Shas",
     allDoneHint: "Nothing left here — all done! 🎉", noneDone: "Nothing marked done yet.", noHits: "No masechtos match.",
@@ -75,6 +97,9 @@ const STR = {
     fullSeder: "סדר שלם הסתיים", keepGoing: "ממשיכים", onward: "קדימה!",
     xpPerek: "+1 פרק", xpN: n => "+" + n + " פרקים",
     unmarked: "בוטל הסימון",
+    perekWord: "פרק", mishnayosWord: "משניות",
+    mishnaProgress: (k, n) => k + "/" + n + " משניות",
+    markPerek: "סמן את כל הפרק", unmarkPerek: "בטל את סימון הפרק",
     shasDone: "כל הש״ס!", shasDoneSub: who => who + " למד כל פרק. חזק!",
     searchPh: "חיפוש מסכת…", stAll: "הכל", stLeft: "נותר", stDone: "הושלם", allShas: "כל הש״ס",
     allDoneHint: "אין מה ללמוד כאן — הכל הושלם! 🎉", noneDone: "עדיין לא סומן דבר.", noHits: "לא נמצאו מסכתות.",
@@ -122,6 +147,7 @@ function useShasApp() {
   const [collapsedMas, setCollapsedMas] = useState(() => new Set());
   const [authOpen, setAuthOpen] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [sheetId, setSheetId] = useState(null);
   const toastTimer = useRef(null);
   const pendingToggleRef = useRef(null);
 
@@ -141,29 +167,46 @@ function useShasApp() {
     toastTimer.current = setTimeout(() => setToast(""), 2400);
   }, []);
 
-  useEffect(() => { apiGet().then(setData).catch(() => showToast(STR[localStorage.getItem("shas2-lang") || "en"].loadErr)); }, [showToast]);
+  useEffect(() => { apiGet().then(d => setData(hydratePerakim(d))).catch(() => showToast(STR[localStorage.getItem("shas2-lang") || "en"].loadErr)); }, [showToast]);
 
   const groups = useMemo(() => (data ? computeGroups(data) : []), [data]);
   const total = useMemo(() => (data ? data.perakim.length : 0), [data]);
   const emanTot = useMemo(() => (data ? data.perakim.filter(p => p.eman_done).length : 0), [data]);
   const yehudaTot = useMemo(() => (data ? data.perakim.filter(p => p.yehuda_done).length : 0), [data]);
 
-  const setDone = useCallback((perek_id, who, done) => {
-    setData(prev => ({ perakim: prev.perakim.map(p => p.perek_id === perek_id
-      ? { ...p, [who + "_done"]: done, [who + "_date"]: done ? todayISO() : null } : p) }));
+  const patchPerek = useCallback((perek_id, patch) => {
+    setData(prev => ({ perakim: prev.perakim.map(p => p.perek_id === perek_id ? { ...p, ...patch } : p) }));
   }, []);
 
-  const performToggle = useCallback((p, password) => {
+  /* One save path for both granularities. mishna == null toggles the whole
+     perek (cascading to every mishna); a mishna number toggles that one
+     sub-task, auto-completing the perek when it was the last one and
+     reopening the perek when one is removed — full two-way sync. */
+  const performSave = useCallback((p, mishna, password) => {
     const who = person;
-    const next = !p[who + "_done"];
-    setDone(p.perek_id, who, next);
-    apiPost({ perek_id: p.perek_id, person: who, done: next, date: next ? todayISO() : null, password })
+    const prevDone = p[who + "_done"];
+    const prev = { [who + "_done"]: prevDone, [who + "_date"]: p[who + "_date"], [who + "_mishnayos"]: p[who + "_mishnayos"] };
+
+    let nextList, nextDone;
+    if (mishna == null) {
+      nextDone = !prevDone;
+      nextList = nextDone ? allMishnayos(p) : [];
+    } else {
+      const s = new Set(learnedMishnayos(p, who));
+      s.has(mishna) ? s.delete(mishna) : s.add(mishna);
+      nextList = allMishnayos(p).filter(n => s.has(n));
+      nextDone = p.mishna_count > 0 && nextList.length === p.mishna_count;
+    }
+    const date = nextDone ? todayISO() : null;
+
+    patchPerek(p.perek_id, { [who + "_done"]: nextDone, [who + "_date"]: date, [who + "_mishnayos"]: nextDone ? [] : nextList });
+    apiPost({ perek_id: p.perek_id, person: who, done: nextDone, date, mishnayos: nextDone ? "" : nextList.join(","), password })
       .then(res => {
         if (!res || !res.ok) {
-          setDone(p.perek_id, who, !next);
+          patchPerek(p.perek_id, prev);
           if (res && res.error === "bad password") {
             localStorage.removeItem(WRITE_KEY_STORAGE);
-            pendingToggleRef.current = p;
+            pendingToggleRef.current = { p, mishna };
             setAuthError(S.authWrong);
             setAuthOpen(true);
           } else {
@@ -173,7 +216,11 @@ function useShasApp() {
         }
         localStorage.setItem(WRITE_KEY_STORAGE, password);
 
-        if (!next) { showToast(S.unmarked); return; }
+        if (!nextDone) {
+          if (mishna == null) { showToast(S.unmarked); return; }
+          showToast(masName(p.masechta, lang) + " " + p.perek_num + " · " + S.mishnaProgress(nextList.length, p.mishna_count));
+          return;
+        }
         if (!tw.celebrations) return;
 
         const isDoneX = x => (x.perek_id === p.perek_id ? true : x[who + "_done"]);
@@ -194,23 +241,37 @@ function useShasApp() {
             meta: masName(p.masechta, lang) + " · " + S.masechta + " " + p.perek_num, xp: S.xpPerek, cta: S.keepGoing });
         }
       })
-      .catch(() => { setDone(p.perek_id, who, !next); showToast(S.saveErr); });
-  }, [person, data, tw.celebrations, S, lang, setDone, showToast]);
+      .catch(() => { patchPerek(p.perek_id, prev); showToast(S.saveErr); });
+  }, [person, data, tw.celebrations, S, lang, patchPerek, showToast]);
 
-  const onToggle = useCallback((p) => {
+  const attemptSave = useCallback((p, mishna) => {
     const key = getWriteKey();
-    if (key) { performToggle(p, key); return; }
-    pendingToggleRef.current = p;
+    if (key) { performSave(p, mishna, key); return; }
+    pendingToggleRef.current = { p, mishna };
     setAuthError("");
     setAuthOpen(true);
-  }, [performToggle]);
+  }, [performSave]);
+
+  const togglePerek = useCallback(p => attemptSave(p, null), [attemptSave]);
+  const toggleMishna = useCallback((p, n) => attemptSave(p, n), [attemptSave]);
+
+  /* Tapping a perek opens its mishnayos sheet; perakim with no known mishna
+     count keep the old direct toggle. */
+  const onToggle = useCallback(p => {
+    if (p.mishna_count > 0) setSheetId(p.perek_id);
+    else attemptSave(p, null);
+  }, [attemptSave]);
+  const closeSheet = useCallback(() => setSheetId(null), []);
+  const sheetPerek = useMemo(
+    () => (data && sheetId ? data.perakim.find(p => p.perek_id === sheetId) || null : null),
+    [data, sheetId]);
 
   const submitWriteKey = useCallback((password) => {
-    const p = pendingToggleRef.current;
+    const pending = pendingToggleRef.current;
     setAuthOpen(false);
-    if (!p) return;
-    performToggle(p, password);
-  }, [performToggle]);
+    if (!pending) return;
+    performSave(pending.p, pending.mishna, password);
+  }, [performSave]);
 
   const closeAuthGate = useCallback(() => {
     setAuthOpen(false);
@@ -234,8 +295,9 @@ function useShasApp() {
     collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
+    sheetPerek, closeSheet, togglePerek, toggleMishna,
     authOpen, authError, submitWriteKey, closeAuthGate,
   };
 }
 
-Object.assign(window, { computeGroups, sederName, masName, pct, STR, PCOL, useShasApp });
+Object.assign(window, { computeGroups, sederName, masName, pct, STR, PCOL, useShasApp, learnedMishnayos });

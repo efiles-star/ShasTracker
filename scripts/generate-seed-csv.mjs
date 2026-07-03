@@ -1,7 +1,12 @@
 /* Generates data/shas-seed.csv — the 525-row source-of-truth seed for the Google Sheet.
  *
  * Columns match what the Apps Script doGet returns and the frontend expects:
- *   seder, masechta, perek_num, perek_id, eman_done, eman_date, yehuda_done, yehuda_date
+ *   seder, masechta, perek_num, perek_id, eman_done, eman_date, yehuda_done, yehuda_date,
+ *   eman_mishnayos, yehuda_mishnayos
+ *
+ * The mishnayos columns hold each person's learned mishna numbers ("1,3,4") for
+ * perakim in progress; they're seeded blank — a done perek already implies every
+ * mishna is learned, so completed masechtos need no list.
  *
  * The Seder → [masechta, perek count] map is identical to shas.js (525 perakim total),
  * so perek_id values line up exactly with what the frontend writes back via doPost.
@@ -35,7 +40,7 @@ const EMAN_DONE_MASECHTOS = new Set(["Pesachim", "Sukkah", "Avos", "Sanhedrin", 
 // Yehuda has no seeded progress yet.
 const YEHUDA_DONE_MASECHTOS = new Set();
 
-const header = ["seder", "masechta", "perek_num", "perek_id", "eman_done", "eman_date", "yehuda_done", "yehuda_date"];
+const header = ["seder", "masechta", "perek_num", "perek_id", "eman_done", "eman_date", "yehuda_done", "yehuda_date", "eman_mishnayos", "yehuda_mishnayos"];
 const rows = [header.join(",")];
 let total = 0, emanDone = 0, yehudaDone = 0;
 
@@ -51,6 +56,7 @@ for (const [seder, masechtos] of SEDARIM) {
         seder, masechta, n, `${seder}.${masechta}.${n}`,
         eman ? "TRUE" : "FALSE", "",
         yehuda ? "TRUE" : "FALSE", "",
+        "", "",
       ].join(","));
     }
   }

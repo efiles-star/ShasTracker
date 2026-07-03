@@ -6,6 +6,7 @@ function WebApp() {
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
+    sheetPerek, closeSheet, togglePerek, toggleMishna,
     authOpen, authError, submitWriteKey, closeAuthGate } = A;
   const pct = window.pct;
 
@@ -90,6 +91,8 @@ function WebApp() {
         </div>
       </aside>
 
+      <window.MishnaSheet p={sheetPerek} person={person} S={S} lang={lang} onClose={closeSheet}
+        onToggleMishna={toggleMishna} onTogglePerek={p => { togglePerek(p); closeSheet(); }} />
       <window.Celebration cele={cele} onClose={() => setCele(null)} />
       <window.AuthGate open={authOpen} error={authError} onSubmit={submitWriteKey} onCancel={closeAuthGate} S={S} />
       <div className={"toast" + (toast ? " show" : "")}>{toast}</div>
