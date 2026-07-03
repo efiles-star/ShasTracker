@@ -44,7 +44,7 @@ const STR = {
     title: "Shas Tracker", subtitle: n => "Mishnah · " + n + " perakim",
     abba: "Abba", yehuda: "Yehuda", aInit: "A", yInit: "Y",
     seder: "Seder", masechta: "Masechta", start: "Start", perakimWord: "perakim",
-    navPath: "Path", navStats: "Stats", navSearch: "Search",
+    navPath: "Path", navStats: "Stats", navSearch: "Search", navNow: "Now Learning",
     yasher: "Yasher koach!", mazel: "Mazel tov!", incredible: "Incredible!",
     perekComplete: "Perek learned", complete: "complete!", fullMasechta: "A whole masechta finished",
     fullSeder: "An entire Seder finished", keepGoing: "Keep going", onward: "Onward!",
@@ -64,12 +64,16 @@ const STR = {
     loading: "Loading Shas…", saveErr: "Couldn't save — try again", loadErr: "Couldn't load — check the connection",
     authTitle: "Enter password to save", authSub: "Viewing is open to everyone — marking progress needs the password.",
     authPlaceholder: "Password", authSubmit: "Unlock", authCancel: "Cancel", authWrong: "Wrong password — try again",
+    setCurrent: "Pin as currently learning", unpinCurrent: "Unpin",
+    noCurrent: "Nothing pinned yet.", noCurrentHint: "Pin a masechta from Search to track it here.",
+    switchToEdit: who => "Switch to " + who + " to update",
+    nowLearningSet: m => "Now learning: " + m, nowLearningCleared: "Unpinned",
   },
   he: {
     title: "מעקב ש״ס", subtitle: n => "משנה · " + n + " פרקים",
     abba: "אבא", yehuda: "יהודה", aInit: "א", yInit: "י",
     seder: "סדר", masechta: "מסכת", start: "התחל", perakimWord: "פרקים",
-    navPath: "מסלול", navStats: "נתונים", navSearch: "חיפוש",
+    navPath: "מסלול", navStats: "נתונים", navSearch: "חיפוש", navNow: "לומדים כעת",
     yasher: "יישר כח!", mazel: "מזל טוב!", incredible: "מדהים!",
     perekComplete: "פרק נלמד", complete: "הושלמה!", fullMasechta: "מסכת שלמה הסתיימה",
     fullSeder: "סדר שלם הסתיים", keepGoing: "ממשיכים", onward: "קדימה!",
@@ -89,6 +93,10 @@ const STR = {
     loading: "טוען ש״ס…", saveErr: "השמירה נכשלה — נסה שוב", loadErr: "הטעינה נכשלה — בדוק את החיבור",
     authTitle: "הזן סיסמה כדי לשמור", authSub: "הצפייה פתוחה לכולם — סימון התקדמות דורש סיסמה.",
     authPlaceholder: "סיסמה", authSubmit: "פתח", authCancel: "ביטול", authWrong: "סיסמה שגויה — נסה שוב",
+    setCurrent: "סמן כנלמד כעת", unpinCurrent: "בטל סימון",
+    noCurrent: "טרם נבחר דבר.", noCurrentHint: "סמן מסכת ב'חיפוש' כדי לעקוב אחריה כאן.",
+    switchToEdit: who => "עבור אל " + who + " כדי לעדכן",
+    nowLearningSet: m => "לומד כעת: " + m, nowLearningCleared: "הוסר הסימון",
   },
 };
 
@@ -123,7 +131,7 @@ function useShasApp() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authError, setAuthError] = useState("");
   const toastTimer = useRef(null);
-  const pendingToggleRef = useRef(null);
+  const pendingRef = useRef(null); // { kind: "toggle", p } | { kind: "setCurrent", masechta }
 
   const toggleSeder = useCallback(s => setCollapsedSed(prev => {
     const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n;
@@ -149,7 +157,7 @@ function useShasApp() {
   const yehudaTot = useMemo(() => (data ? data.perakim.filter(p => p.yehuda_done).length : 0), [data]);
 
   const setDone = useCallback((perek_id, who, done) => {
-    setData(prev => ({ perakim: prev.perakim.map(p => p.perek_id === perek_id
+    setData(prev => ({ ...prev, perakim: prev.perakim.map(p => p.perek_id === perek_id
       ? { ...p, [who + "_done"]: done, [who + "_date"]: done ? todayISO() : null } : p) }));
   }, []);
 
@@ -163,7 +171,7 @@ function useShasApp() {
           setDone(p.perek_id, who, !next);
           if (res && res.error === "bad password") {
             localStorage.removeItem(WRITE_KEY_STORAGE);
-            pendingToggleRef.current = p;
+            pendingRef.current = { kind: "toggle", p };
             setAuthError(S.authWrong);
             setAuthOpen(true);
           } else {
@@ -200,21 +208,57 @@ function useShasApp() {
   const onToggle = useCallback((p) => {
     const key = getWriteKey();
     if (key) { performToggle(p, key); return; }
-    pendingToggleRef.current = p;
+    pendingRef.current = { kind: "toggle", p };
     setAuthError("");
     setAuthOpen(true);
   }, [performToggle]);
 
+  const performSetCurrent = useCallback((masechta, password) => {
+    const who = person;
+    const prevCurrent = data.current ? data.current[who] : null;
+    setData(prev => ({ ...prev, current: { ...prev.current, [who]: masechta || null } }));
+    apiPost({ action: "setCurrent", person: who, masechta: masechta || "", password })
+      .then(res => {
+        if (!res || !res.ok) {
+          setData(prev => ({ ...prev, current: { ...prev.current, [who]: prevCurrent } }));
+          if (res && res.error === "bad password") {
+            localStorage.removeItem(WRITE_KEY_STORAGE);
+            pendingRef.current = { kind: "setCurrent", masechta };
+            setAuthError(S.authWrong);
+            setAuthOpen(true);
+          } else {
+            showToast(S.saveErr);
+          }
+          return;
+        }
+        localStorage.setItem(WRITE_KEY_STORAGE, password);
+        showToast(masechta ? S.nowLearningSet(masName(masechta, lang)) : S.nowLearningCleared);
+      })
+      .catch(() => {
+        setData(prev => ({ ...prev, current: { ...prev.current, [who]: prevCurrent } }));
+        showToast(S.saveErr);
+      });
+  }, [person, data, S, lang, showToast]);
+
+  const requestSetCurrent = useCallback((masechta) => {
+    const key = getWriteKey();
+    if (key) { performSetCurrent(masechta, key); return; }
+    pendingRef.current = { kind: "setCurrent", masechta };
+    setAuthError("");
+    setAuthOpen(true);
+  }, [performSetCurrent]);
+
   const submitWriteKey = useCallback((password) => {
-    const p = pendingToggleRef.current;
+    const action = pendingRef.current;
     setAuthOpen(false);
-    if (!p) return;
-    performToggle(p, password);
-  }, [performToggle]);
+    if (!action) return;
+    if (action.kind === "toggle") performToggle(action.p, password);
+    else if (action.kind === "setCurrent") performSetCurrent(action.masechta, password);
+  }, [performToggle, performSetCurrent]);
 
   const closeAuthGate = useCallback(() => {
     setAuthOpen(false);
-    pendingToggleRef.current = null;
+    pendingRef.current = null;
   }, []);
 
   const chestTap = useCallback((m, col, ready) => {
@@ -234,7 +278,7 @@ function useShasApp() {
     collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate,
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent,
   };
 }
 

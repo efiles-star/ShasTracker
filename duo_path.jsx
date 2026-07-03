@@ -21,6 +21,7 @@ const DP = {
   chart:  "M5 20V11M12 20V4M19 20v-7",
   lock:   "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
   chev:   "M9 18l6-6-6-6",
+  pin:    "M12 21s7-7.58 7-12A7 7 0 0 0 5 9c0 4.42 7 12 7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
 };
 
 /* emoji — one per Seder, one per Masechta (keyed by the English name in shas.js) */

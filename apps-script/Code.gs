@@ -4,11 +4,17 @@
 
      doGet  → returns the whole board as JSON:
               { perakim: [ { perek_id, seder, masechta, perek_num,
-                             eman_done, eman_date, yehuda_done, yehuda_date } ] }
-     doPost → marks one cell (person × perek) with status + date (requires a
-              password — reading stays public, writing doesn't):
-              body { perek_id, person: "eman"|"yehuda", done: bool,
-                     date: "YYYY-MM-DD"|null, password: string }
+                             eman_done, eman_date, yehuda_done, yehuda_date } ],
+                current: { eman: string|null, yehuda: string|null } }
+     doPost → requires a password (reading stays public, writing doesn't);
+              dispatches by body.action:
+              action "toggle" (default) — mark one (perek_id, person) cell:
+                body { perek_id, person: "eman"|"yehuda", done: bool,
+                       date: "YYYY-MM-DD"|null, password: string }
+              action "setCurrent" — pin/clear the masechta a person is
+              currently learning:
+                body { action: "setCurrent", person: "eman"|"yehuda",
+                       masechta: string|"", password: string }
               → { ok: true } or { ok: false, error: "bad password" }
 
    Deploy: Extensions → Apps Script → paste this → Deploy → New deployment →
@@ -27,6 +33,17 @@ var TZ = Session.getScriptTimeZone();
    rotate it any time without editing or redeploying the script. */
 function getWritePassword_() {
   return PropertiesService.getScriptProperties().getProperty("WRITE_PASSWORD") || "";
+}
+
+/* "Currently learning" — one masechta pinned per person, independent of perek
+   progress (learning is non-sequential). Stored the same way as the password:
+   Script Properties, not the Sheet, so no schema change and instant reads. */
+function getCurrentMasechtos_() {
+  var props = PropertiesService.getScriptProperties();
+  return {
+    eman: props.getProperty("CURRENT_EMAN") || null,
+    yehuda: props.getProperty("CURRENT_YEHUDA") || null,
+  };
 }
 
 /* ---- column lookup by header name (order-independent) ---- */
@@ -75,10 +92,10 @@ function doGet() {
       });
     });
   }
-  return json_({ perakim: perakim });
+  return json_({ perakim: perakim, current: getCurrentMasechtos_() });
 }
 
-/* ---- POST: mark one (perek_id, person) cell — requires the write password ---- */
+/* ---- POST: requires the write password, then dispatches by action ---- */
 function doPost(e) {
   var body;
   try {
@@ -91,6 +108,26 @@ function doPost(e) {
   if (!expected) return json_({ ok: false, error: "server not configured: set the WRITE_PASSWORD script property" });
   if (String(body.password) !== expected) return json_({ ok: false, error: "bad password" });
 
+  if (body.action === "setCurrent") return handleSetCurrent_(body);
+  return handleToggle_(body);
+}
+
+/* action "setCurrent": pin (or clear, if masechta is empty) the masechta a
+   person is currently learning. No sheet lock needed — a single property set. */
+function handleSetCurrent_(body) {
+  var person = body.person;
+  if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
+
+  var props = PropertiesService.getScriptProperties();
+  var key = person === "eman" ? "CURRENT_EMAN" : "CURRENT_YEHUDA";
+  var masechta = body.masechta ? String(body.masechta) : "";
+  if (masechta) props.setProperty(key, masechta); else props.deleteProperty(key);
+
+  return json_({ ok: true, current: getCurrentMasechtos_() });
+}
+
+/* default action: mark one (perek_id, person) cell with status + date */
+function handleToggle_(body) {
   var person = body.person;
   if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
   if (!body.perek_id) return json_({ ok: false, error: "missing perek_id" });
