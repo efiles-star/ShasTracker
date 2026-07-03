@@ -6,23 +6,28 @@
    The full Shas is generated here so the mosaic renders complete while
    SCRIPT_URL is still a placeholder. Swap for the live GET in production —
    the frontend never hardcodes counts, it renders whatever it receives.
+
+   Names use modern Sephardi transliteration (Avot, Shabbat, Berachot). The
+   live Google Sheet may still carry the original Ashkenazi spellings in its
+   perek_ids and name columns — MAS_CANON / SEDER_CANON below translate those
+   at read time, so no Sheet migration is ever required.
    ========================================================================= */
 (function () {
   // seder → [masechta, perek count]   (525 perakim total)
   const SEDARIM = [
-    ["Zeraim", [["Berachos", 9], ["Peah", 8], ["Demai", 7], ["Kilayim", 9], ["Sheviis", 10],
-      ["Terumos", 11], ["Maasros", 5], ["Maaser Sheni", 5], ["Challah", 4], ["Orlah", 3], ["Bikkurim", 4]]],
-    ["Moed", [["Shabbos", 24], ["Eruvin", 10], ["Pesachim", 10], ["Shekalim", 8], ["Yoma", 8],
-      ["Sukkah", 5], ["Beitzah", 5], ["Rosh Hashanah", 4], ["Taanis", 4], ["Megillah", 4],
+    ["Zeraim", [["Berachot", 9], ["Peah", 8], ["Demai", 7], ["Kilayim", 9], ["Sheviit", 10],
+      ["Terumot", 11], ["Maasrot", 5], ["Maaser Sheni", 5], ["Challah", 4], ["Orlah", 3], ["Bikkurim", 4]]],
+    ["Moed", [["Shabbat", 24], ["Eruvin", 10], ["Pesachim", 10], ["Shekalim", 8], ["Yoma", 8],
+      ["Sukkah", 5], ["Beitzah", 5], ["Rosh Hashanah", 4], ["Taanit", 4], ["Megillah", 4],
       ["Moed Katan", 3], ["Chagigah", 3]]],
-    ["Nashim", [["Yevamos", 16], ["Kesubos", 13], ["Nedarim", 11], ["Nazir", 9], ["Sotah", 9],
+    ["Nashim", [["Yevamot", 16], ["Ketubot", 13], ["Nedarim", 11], ["Nazir", 9], ["Sotah", 9],
       ["Gittin", 9], ["Kiddushin", 4]]],
-    ["Nezikin", [["Bava Kamma", 10], ["Bava Metzia", 10], ["Bava Basra", 10], ["Sanhedrin", 11],
-      ["Makkos", 3], ["Shevuos", 8], ["Eduyos", 8], ["Avodah Zarah", 5], ["Avos", 6], ["Horayos", 3]]],
-    ["Kodashim", [["Zevachim", 14], ["Menachos", 13], ["Chullin", 12], ["Bechoros", 9], ["Arachin", 9],
-      ["Temurah", 7], ["Kerisos", 6], ["Meilah", 6], ["Tamid", 7], ["Middos", 5], ["Kinnim", 3]]],
-    ["Taharos", [["Keilim", 30], ["Ohalos", 18], ["Negaim", 14], ["Parah", 12], ["Taharos", 10],
-      ["Mikvaos", 10], ["Niddah", 10], ["Machshirin", 6], ["Zavim", 5], ["Tevul Yom", 4],
+    ["Nezikin", [["Bava Kamma", 10], ["Bava Metzia", 10], ["Bava Batra", 10], ["Sanhedrin", 11],
+      ["Makkot", 3], ["Shevuot", 8], ["Eduyot", 8], ["Avodah Zarah", 5], ["Avot", 6], ["Horayot", 3]]],
+    ["Kodashim", [["Zevachim", 14], ["Menachot", 13], ["Chullin", 12], ["Bechorot", 9], ["Arachin", 9],
+      ["Temurah", 7], ["Keritot", 6], ["Meilah", 6], ["Tamid", 7], ["Middot", 5], ["Kinnim", 3]]],
+    ["Taharot", [["Keilim", 30], ["Ohalot", 18], ["Negaim", 14], ["Parah", 12], ["Taharot", 10],
+      ["Mikvaot", 10], ["Niddah", 10], ["Machshirin", 6], ["Zavim", 5], ["Tevul Yom", 4],
       ["Yadayim", 4], ["Uktzin", 3]]],
   ];
 
@@ -81,21 +86,62 @@
   window.SHAS_MOCK = { perakim, current: { eman: null, yehuda: null } };
   window.SEDER_ORDER = SEDER_ORDER;
 
+  // Legacy Ashkenazi spellings (as seeded in the live Sheet) → Sephardi display
+  // names. Applied to incoming data only — perek_id stays untouched as the
+  // stable write key, so the existing Sheet keeps working unmodified.
+  window.SEDER_CANON = { Taharos: "Taharot" };
+  window.MAS_CANON = {
+    Berachos: "Berachot", Sheviis: "Sheviit", Terumos: "Terumot", Maasros: "Maasrot",
+    Shabbos: "Shabbat", Taanis: "Taanit",
+    Yevamos: "Yevamot", Kesubos: "Ketubot",
+    "Bava Basra": "Bava Batra", Makkos: "Makkot", Shevuos: "Shevuot", Eduyos: "Eduyot",
+    Avos: "Avot", Horayos: "Horayot",
+    Menachos: "Menachot", Bechoros: "Bechorot", Kerisos: "Keritot", Middos: "Middot",
+    Ohalos: "Ohalot", Taharos: "Taharot", Mikvaos: "Mikvaot",
+  };
+
+  // Sefaria index titles (for the live reader) — keyed by our display name.
+  // Sefaria's canonical spellings differ from ours in a few places
+  // (Berakhot, Kelim, Oholot…), and Avot lives there as "Pirkei Avot".
+  window.MAS_SEFARIA = {
+    Berachot: "Mishnah Berakhot", Peah: "Mishnah Peah", Demai: "Mishnah Demai",
+    Kilayim: "Mishnah Kilayim", Sheviit: "Mishnah Sheviit", Terumot: "Mishnah Terumot",
+    Maasrot: "Mishnah Maasrot", "Maaser Sheni": "Mishnah Maaser Sheni", Challah: "Mishnah Challah",
+    Orlah: "Mishnah Orlah", Bikkurim: "Mishnah Bikkurim",
+    Shabbat: "Mishnah Shabbat", Eruvin: "Mishnah Eruvin", Pesachim: "Mishnah Pesachim",
+    Shekalim: "Mishnah Shekalim", Yoma: "Mishnah Yoma", Sukkah: "Mishnah Sukkah",
+    Beitzah: "Mishnah Beitzah", "Rosh Hashanah": "Mishnah Rosh Hashanah", Taanit: "Mishnah Taanit",
+    Megillah: "Mishnah Megillah", "Moed Katan": "Mishnah Moed Katan", Chagigah: "Mishnah Chagigah",
+    Yevamot: "Mishnah Yevamot", Ketubot: "Mishnah Ketubot", Nedarim: "Mishnah Nedarim",
+    Nazir: "Mishnah Nazir", Sotah: "Mishnah Sotah", Gittin: "Mishnah Gittin", Kiddushin: "Mishnah Kiddushin",
+    "Bava Kamma": "Mishnah Bava Kamma", "Bava Metzia": "Mishnah Bava Metzia", "Bava Batra": "Mishnah Bava Batra",
+    Sanhedrin: "Mishnah Sanhedrin", Makkot: "Mishnah Makkot", Shevuot: "Mishnah Shevuot",
+    Eduyot: "Mishnah Eduyot", "Avodah Zarah": "Mishnah Avodah Zarah", Avot: "Pirkei Avot", Horayot: "Mishnah Horayot",
+    Zevachim: "Mishnah Zevachim", Menachot: "Mishnah Menachot", Chullin: "Mishnah Chullin",
+    Bechorot: "Mishnah Bekhorot", Arachin: "Mishnah Arakhin", Temurah: "Mishnah Temurah",
+    Keritot: "Mishnah Keritot", Meilah: "Mishnah Meilah", Tamid: "Mishnah Tamid",
+    Middot: "Mishnah Middot", Kinnim: "Mishnah Kinnim",
+    Keilim: "Mishnah Kelim", Ohalot: "Mishnah Oholot", Negaim: "Mishnah Negaim",
+    Parah: "Mishnah Parah", Taharot: "Mishnah Tahorot", Mikvaot: "Mishnah Mikvaot",
+    Niddah: "Mishnah Niddah", Machshirin: "Mishnah Makhshirin", Zavim: "Mishnah Zavim",
+    "Tevul Yom": "Mishnah Tevul Yom", Yadayim: "Mishnah Yadayim", Uktzin: "Mishnah Oktzin",
+  };
+
   // Hebrew names (for the Hebrew toggle)
   window.SEDER_HE = {
-    Zeraim: "זרעים", Moed: "מועד", Nashim: "נשים", Nezikin: "נזיקין", Kodashim: "קדשים", Taharos: "טהרות",
+    Zeraim: "זרעים", Moed: "מועד", Nashim: "נשים", Nezikin: "נזיקין", Kodashim: "קדשים", Taharot: "טהרות",
   };
   window.MAS_HE = {
-    Berachos: "ברכות", Peah: "פאה", Demai: "דמאי", Kilayim: "כלאים", Sheviis: "שביעית", Terumos: "תרומות",
-    Maasros: "מעשרות", "Maaser Sheni": "מעשר שני", Challah: "חלה", Orlah: "ערלה", Bikkurim: "ביכורים",
-    Shabbos: "שבת", Eruvin: "עירובין", Pesachim: "פסחים", Shekalim: "שקלים", Yoma: "יומא", Sukkah: "סוכה",
-    Beitzah: "ביצה", "Rosh Hashanah": "ראש השנה", Taanis: "תענית", Megillah: "מגילה", "Moed Katan": "מועד קטן", Chagigah: "חגיגה",
-    Yevamos: "יבמות", Kesubos: "כתובות", Nedarim: "נדרים", Nazir: "נזיר", Sotah: "סוטה", Gittin: "גיטין", Kiddushin: "קידושין",
-    "Bava Kamma": "בבא קמא", "Bava Metzia": "בבא מציעא", "Bava Basra": "בבא בתרא", Sanhedrin: "סנהדרין", Makkos: "מכות",
-    Shevuos: "שבועות", Eduyos: "עדויות", "Avodah Zarah": "עבודה זרה", Avos: "אבות", Horayos: "הוריות",
-    Zevachim: "זבחים", Menachos: "מנחות", Chullin: "חולין", Bechoros: "בכורות", Arachin: "ערכין", Temurah: "תמורה",
-    Kerisos: "כריתות", Meilah: "מעילה", Tamid: "תמיד", Middos: "מידות", Kinnim: "קינים",
-    Keilim: "כלים", Ohalos: "אהלות", Negaim: "נגעים", Parah: "פרה", Taharos: "טהרות", Mikvaos: "מקואות",
+    Berachot: "ברכות", Peah: "פאה", Demai: "דמאי", Kilayim: "כלאים", Sheviit: "שביעית", Terumot: "תרומות",
+    Maasrot: "מעשרות", "Maaser Sheni": "מעשר שני", Challah: "חלה", Orlah: "ערלה", Bikkurim: "ביכורים",
+    Shabbat: "שבת", Eruvin: "עירובין", Pesachim: "פסחים", Shekalim: "שקלים", Yoma: "יומא", Sukkah: "סוכה",
+    Beitzah: "ביצה", "Rosh Hashanah": "ראש השנה", Taanit: "תענית", Megillah: "מגילה", "Moed Katan": "מועד קטן", Chagigah: "חגיגה",
+    Yevamot: "יבמות", Ketubot: "כתובות", Nedarim: "נדרים", Nazir: "נזיר", Sotah: "סוטה", Gittin: "גיטין", Kiddushin: "קידושין",
+    "Bava Kamma": "בבא קמא", "Bava Metzia": "בבא מציעא", "Bava Batra": "בבא בתרא", Sanhedrin: "סנהדרין", Makkot: "מכות",
+    Shevuot: "שבועות", Eduyot: "עדויות", "Avodah Zarah": "עבודה זרה", Avot: "אבות", Horayot: "הוריות",
+    Zevachim: "זבחים", Menachot: "מנחות", Chullin: "חולין", Bechorot: "בכורות", Arachin: "ערכין", Temurah: "תמורה",
+    Keritot: "כריתות", Meilah: "מעילה", Tamid: "תמיד", Middot: "מידות", Kinnim: "קינים",
+    Keilim: "כלים", Ohalot: "אהלות", Negaim: "נגעים", Parah: "פרה", Taharot: "טהרות", Mikvaot: "מקואות",
     Niddah: "נדה", Machshirin: "מכשירין", Zavim: "זבים", "Tevul Yom": "טבול יום", Yadayim: "ידים", Uktzin: "עוקצין",
   };
 })();

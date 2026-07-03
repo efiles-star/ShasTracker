@@ -6,7 +6,7 @@ const dAgoISO = n => { const d = new Date(D_TODAY); d.setDate(d.getDate() - n); 
 const dpct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
 /* ================================ SEARCH ================================ */
-function SearchView({ S, lang, groups, person, onToggle, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent }) {
+function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent }) {
   const sederName = window.sederName, masName = window.masName;
   const q = search.trim().toLowerCase();
   const SEDER_ORDER = window.SEDER_ORDER;
@@ -16,7 +16,7 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
   groups.forEach((g, si) => {
     if (sederFilter !== "all" && sederFilter !== g.seder) return;
     const col = window.sederColor(si);
-    g.masechtos.forEach(m => {
+    g.masechtot.forEach(m => {
       const hit = !q || m.masechta.toLowerCase().includes(q) || (window.MAS_HE[m.masechta] || "").includes(search.trim());
       if (!hit) return;
       const peraks = status === "all" ? m.perakim
@@ -58,6 +58,10 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
                 title={isPinned ? S.unpinCurrent : S.setCurrent}
                 onClick={() => onSetCurrent(isPinned ? null : c.masechta)}>
                 <window.DIcon d={window.DP.pin} w={16} s={2.2} fill={isPinned} />
+              </button>
+              <button className="mread" style={{ color: c.col.d }} title={S.read}
+                onClick={() => onRead(c.peraks[0])}>
+                <window.DIcon d={window.DP.book} w={17} s={2.4} />
               </button>
               <span className="ct">{c.done}/{c.total}</span>
             </div>
@@ -221,13 +225,13 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
 }
 
 /* ============================ NOW LEARNING ============================ */
-function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent }) {
+function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent, onRead }) {
   const masName = window.masName, sederName = window.sederName, PCOL = window.PCOL;
   const DIcon = window.DIcon, DP = window.DP;
 
   const findMasechta = name => {
     for (const g of groups) {
-      const m = g.masechtos.find(x => x.masechta === name);
+      const m = g.masechtot.find(x => x.masechta === name);
       if (m) return { g, m };
     }
     return null;
@@ -270,6 +274,9 @@ function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent
                   <span className={"crown" + (doneCount === found.m.perakim.length ? " full" : "")}>
                     <DIcon d={DP.crown} w={16} fill />{doneCount}/{found.m.perakim.length}
                   </span>
+                  <button className="nowread" title={S.read} onClick={() => onRead(found.m.perakim[0])}>
+                    <DIcon d={DP.book} w={16} s={2.4} />
+                  </button>
                 </div>
                 <div className="mtiles">
                   {found.m.perakim.map(p => {

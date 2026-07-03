@@ -26,19 +26,19 @@ const DP = {
 
 /* emoji — one per Seder, one per Masechta (keyed by the English name in shas.js) */
 const SEDER_EMOJI = {
-  Zeraim: "🌱", Moed: "📅", Nashim: "💍", Nezikin: "⚖️", Kodashim: "🕊️", Taharos: "💧",
+  Zeraim: "🌱", Moed: "📅", Nashim: "💍", Nezikin: "⚖️", Kodashim: "🕊️", Taharot: "💧",
 };
 const MAS_EMOJI = {
-  Berachos: "🙏", Peah: "🌾", Demai: "🌽", Kilayim: "🚫", Sheviis: "🌗", Terumos: "🎁",
-  Maasros: "🔟", "Maaser Sheni": "🍽️", Challah: "🍞", Orlah: "🌳", Bikkurim: "🧺",
-  Shabbos: "🕯️", Eruvin: "🧵", Pesachim: "🫓", Shekalim: "🪙", Yoma: "🐐", Sukkah: "🌿",
-  Beitzah: "🥚", "Rosh Hashanah": "📯", Taanis: "🌧️", Megillah: "📜", "Moed Katan": "🎪", Chagigah: "🎊",
-  Yevamos: "👰", Kesubos: "📃", Nedarim: "🤐", Nazir: "🍇", Sotah: "❓", Gittin: "📄", Kiddushin: "💍",
-  "Bava Kamma": "🐂", "Bava Metzia": "🔍", "Bava Basra": "🏠", Sanhedrin: "👨‍⚖️", Makkos: "🎯",
-  Shevuos: "🤝", Eduyos: "📋", "Avodah Zarah": "🚫", Avos: "📖", Horayos: "🧑‍⚖️",
-  Zevachim: "🔥", Menachos: "🌾", Chullin: "🍖", Bechoros: "🐄", Arachin: "💰", Temurah: "🔄",
-  Kerisos: "✂️", Meilah: "🚫", Tamid: "⏰", Middos: "📐", Kinnim: "🐦",
-  Keilim: "🏺", Ohalos: "⛺", Negaim: "🩹", Parah: "🐄", Taharos: "💧", Mikvaos: "🛁",
+  Berachot: "🙏", Peah: "🌾", Demai: "🌽", Kilayim: "🚫", Sheviit: "🌗", Terumot: "🎁",
+  Maasrot: "🔟", "Maaser Sheni": "🍽️", Challah: "🍞", Orlah: "🌳", Bikkurim: "🧺",
+  Shabbat: "🕯️", Eruvin: "🧵", Pesachim: "🫓", Shekalim: "🪙", Yoma: "🐐", Sukkah: "🌿",
+  Beitzah: "🥚", "Rosh Hashanah": "📯", Taanit: "🌧️", Megillah: "📜", "Moed Katan": "🎪", Chagigah: "🎊",
+  Yevamot: "👰", Ketubot: "📃", Nedarim: "🤐", Nazir: "🍇", Sotah: "❓", Gittin: "📄", Kiddushin: "💍",
+  "Bava Kamma": "🐂", "Bava Metzia": "🔍", "Bava Batra": "🏠", Sanhedrin: "👨‍⚖️", Makkot: "🎯",
+  Shevuot: "🤝", Eduyot: "📋", "Avodah Zarah": "🚫", Avot: "📖", Horayot: "🧑‍⚖️",
+  Zevachim: "🔥", Menachot: "🌾", Chullin: "🍖", Bechorot: "🐄", Arachin: "💰", Temurah: "🔄",
+  Keritot: "✂️", Meilah: "🚫", Tamid: "⏰", Middot: "📐", Kinnim: "🐦",
+  Keilim: "🏺", Ohalot: "⛺", Negaim: "🩹", Parah: "🐄", Taharot: "💧", Mikvaot: "🛁",
   Niddah: "🌙", Machshirin: "💦", Zavim: "💧", "Tevul Yom": "☀️", Yadayim: "✋", Uktzin: "🌿",
 };
 
@@ -49,7 +49,7 @@ const SEDER_COLORS = [
   { c: "#ffc800", d: "#e0a800", t: "#fff3c4", on: "#7a5600" }, // Nashim — gold
   { c: "#ff5252", d: "#e23b3b", t: "#ffe0e0", on: "#ffffff" }, // Nezikin — red
   { c: "#ce82ff", d: "#b45cf0", t: "#f3e6ff", on: "#ffffff" }, // Kodashim — purple
-  { c: "#00cd9c", d: "#00b083", t: "#d1fff3", on: "#054d3c" }, // Taharos — teal
+  { c: "#00cd9c", d: "#00b083", t: "#d1fff3", on: "#054d3c" }, // Taharot — teal
 ];
 const sederColor = i => SEDER_COLORS[i % SEDER_COLORS.length];
 const CONFETTI_COLORS = ["#58cc02", "#1cb0f6", "#ffc800", "#ff5252", "#ce82ff", "#00cd9c"];
@@ -58,7 +58,7 @@ const CONFETTI_COLORS = ["#58cc02", "#1cb0f6", "#ffc800", "#ff5252", "#ce82ff", 
 const AMP = [0, -46, -66, -46, 0, 46, 66, 46];
 
 /* ------------------------------ a single perek node ------------------------------ */
-function TrailNode({ p, col, done, current, offset, onToggle, nums }) {
+function TrailNode({ p, col, done, current, offset, onToggle, onRead, nums, readLabel }) {
   const state = done ? "done" : current ? "current" : "future";
   const style = { "--nc": col.c, "--nd": col.d, "--non": col.on };
   return (
@@ -74,6 +74,10 @@ function TrailNode({ p, col, done, current, offset, onToggle, nums }) {
               : <span className="num">{nums ? p.perek_num : "·"}</span>}
         </span>
         {current && <span className="startbubble">{p._startLabel}</span>}
+      </button>
+      <button className="readbtn" style={style} onClick={() => onRead(p)}
+        title={readLabel} aria-label={readLabel + " — " + p.masechta + " " + p.perek_num}>
+        <DIcon d={DP.book} w={16} s={2.4} />
       </button>
     </div>
   );
@@ -166,13 +170,13 @@ function AuthGate({ open, error, onSubmit, onCancel, S }) {
 }
 
 /* ================================ PATH VIEW ================================ */
-function PathView({ S, lang, groups, person, onToggle, chestTap, nums, collapsedSed, collapsedMas, toggleSeder, toggleMasechta }) {
+function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, collapsedSed, collapsedMas, toggleSeder, toggleMasechta }) {
   const sederName = window.sederName, masName = window.masName, pct = window.pct;
 
   // first not-done perek for this person, in Shas order → the "current" node
   let currentId = null;
   for (const g of groups) {
-    for (const m of g.masechtos) {
+    for (const m of g.masechtot) {
       for (const p of m.perakim) {
         if (!p[person + "_done"]) { currentId = p.perek_id; break; }
       }
@@ -202,7 +206,7 @@ function PathView({ S, lang, groups, person, onToggle, chestTap, nums, collapsed
               <span className="ln" style={{ background: col.t }} />
             </button>
 
-            {!secCollapsed && g.masechtos.map(m => {
+            {!secCollapsed && g.masechtot.map(m => {
               const mdone = m.perakim.filter(p => p[person + "_done"]).length;
               const mfull = mdone === m.perakim.length;
               const masKey = g.seder + "::" + m.masechta;
@@ -228,7 +232,7 @@ function PathView({ S, lang, groups, person, onToggle, chestTap, nums, collapsed
                         return (
                           <TrailNode key={p.perek_id} p={p} col={col} nums={nums}
                             done={p[person + "_done"]} current={p.perek_id === currentId}
-                            offset={AMP[i % AMP.length]} onToggle={onToggle} />
+                            offset={AMP[i % AMP.length]} onToggle={onToggle} onRead={onRead} readLabel={S.read} />
                         );
                       })}
                       <Chest ready={mfull} col={col}

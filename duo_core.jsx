@@ -6,9 +6,22 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 /* ---------- API layer (mirrors v1 mock/live shape) ---------- */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby18pjM3M-Rwa_P9HgULS_cNBKgkElkS1rUdYEhmvV_7ArmfmIPRGn7kXnzQHnccYok/exec";
 const USE_MOCK = SCRIPT_URL.startsWith("PASTE_");
+/* The live Sheet may still carry legacy Ashkenazi spellings (Berachos, Avos,
+   Taharos…) in its seder/masechta columns. Normalize them to the Sephardi
+   display names at the door; perek_id is left untouched — it's the stable
+   write key the Sheet is looked up by. */
+function normalizeData(json) {
+  const MC = window.MAS_CANON || {}, SC = window.SEDER_CANON || {};
+  const cur = json.current || {};
+  return { ...json,
+    perakim: (json.perakim || []).map(p => ({
+      ...p, seder: SC[p.seder] || p.seder, masechta: MC[p.masechta] || p.masechta })),
+    current: { eman: MC[cur.eman] || cur.eman || null, yehuda: MC[cur.yehuda] || cur.yehuda || null },
+  };
+}
 async function apiGet() {
-  if (USE_MOCK) return window.SHAS_MOCK;
-  const r = await fetch(SCRIPT_URL); if (!r.ok) throw new Error("GET failed"); return r.json();
+  if (USE_MOCK) return normalizeData(window.SHAS_MOCK);
+  const r = await fetch(SCRIPT_URL); if (!r.ok) throw new Error("GET failed"); return normalizeData(await r.json());
 }
 async function apiPost(body) {
   if (USE_MOCK) { await new Promise(res => setTimeout(res, 240)); return { ok: true }; }
@@ -20,10 +33,10 @@ async function apiPost(body) {
 function computeGroups(data) {
   const ORD = window.SEDER_ORDER;
   const map = new Map();
-  ORD.forEach(s => map.set(s, { seder: s, masechtos: [], byMas: new Map(), total: 0, eman: 0, yehuda: 0, last: "" }));
+  ORD.forEach(s => map.set(s, { seder: s, masechtot: [], byMas: new Map(), total: 0, eman: 0, yehuda: 0, last: "" }));
   data.perakim.forEach(p => {
     const g = map.get(p.seder); if (!g) return;
-    if (!g.byMas.has(p.masechta)) { const m = { masechta: p.masechta, perakim: [] }; g.byMas.set(p.masechta, m); g.masechtos.push(m); }
+    if (!g.byMas.has(p.masechta)) { const m = { masechta: p.masechta, perakim: [] }; g.byMas.set(p.masechta, m); g.masechtot.push(m); }
     g.byMas.get(p.masechta).perakim.push(p);
     g.total++;
     if (p.eman_done) g.eman++;
@@ -52,7 +65,7 @@ const STR = {
     unmarked: "Unmarked",
     shasDone: "All of Shas!", shasDoneSub: who => who + " has learned every perek. Chazak!",
     searchPh: "Search a masechta…", stAll: "All", stLeft: "Left", stDone: "Done", allShas: "All Shas",
-    allDoneHint: "Nothing left here — all done! 🎉", noneDone: "Nothing marked done yet.", noHits: "No masechtos match.",
+    allDoneHint: "Nothing left here — all done! 🎉", noneDone: "Nothing marked done yet.", noHits: "No masechtot match.",
     statsTitle: "Progress", statsSub: "Abba & Yehuda across all of Shas",
     d30: "30 days", d90: "90 days", dAll: "All time",
     together: "Together", remaining: "Remaining",
@@ -68,6 +81,11 @@ const STR = {
     noCurrent: "Nothing pinned yet.", noCurrentHint: "Pin a masechta from Search to track it here.",
     switchToEdit: who => "Switch to " + who + " to update",
     nowLearningSet: m => "Now learning: " + m, nowLearningCleared: "Unpinned",
+    read: "Read", perekWord: "Perek", mishnahWord: "Mishnah",
+    readerLoading: "Loading from Sefaria…", readerErr: "Couldn't load the text — check the connection",
+    readerRetry: "Try again", openSefaria: "Open on Sefaria",
+    modeBoth: "Both", modeHe: "עברית", modeEn: "English",
+    markLearned: "Mark learned", learned: "Learned ✓",
   },
   he: {
     title: "מעקב ש״ס", subtitle: n => "משנה · " + n + " פרקים",
@@ -97,6 +115,11 @@ const STR = {
     noCurrent: "טרם נבחר דבר.", noCurrentHint: "סמן מסכת ב'חיפוש' כדי לעקוב אחריה כאן.",
     switchToEdit: who => "עבור אל " + who + " כדי לעדכן",
     nowLearningSet: m => "לומד כעת: " + m, nowLearningCleared: "הוסר הסימון",
+    read: "לימוד", perekWord: "פרק", mishnahWord: "משנה",
+    readerLoading: "טוען מספריא…", readerErr: "הטעינה נכשלה — בדוק את החיבור",
+    readerRetry: "נסה שוב", openSefaria: "פתח בספריא",
+    modeBoth: "שניהם", modeHe: "עברית", modeEn: "English",
+    markLearned: "סמן כנלמד", learned: "נלמד ✓",
   },
 };
 
@@ -130,6 +153,7 @@ function useShasApp() {
   const [collapsedMas, setCollapsedMas] = useState(() => new Set());
   const [authOpen, setAuthOpen] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [readerId, setReaderId] = useState(null);
   const toastTimer = useRef(null);
   const pendingRef = useRef(null); // { kind: "toggle", p } | { kind: "setCurrent", masechta }
 
@@ -267,6 +291,24 @@ function useShasApp() {
     else showToast(masName(m.masechta, lang) + " · " + m.perakim.filter(p => p[person + "_done"]).length + "/" + m.perakim.length);
   }, [S, lang, person, showToast]);
 
+  /* ---------- Sefaria reader (live Mishnah text) ---------- */
+  const openReader = useCallback(p => setReaderId(p.perek_id), []);
+  const closeReader = useCallback(() => setReaderId(null), []);
+  // the flat perakim list is already in Shas order, so prev/next walks the whole Shas
+  const readerPerek = useMemo(() => {
+    if (!data || !readerId) return null;
+    const i = data.perakim.findIndex(p => p.perek_id === readerId);
+    if (i === -1) return null;
+    return { p: data.perakim[i], hasPrev: i > 0, hasNext: i < data.perakim.length - 1 };
+  }, [data, readerId]);
+  const readerNav = useCallback(dir => {
+    setReaderId(id => {
+      const i = data.perakim.findIndex(p => p.perek_id === id);
+      const j = i + dir;
+      return j >= 0 && j < data.perakim.length ? data.perakim[j].perek_id : id;
+    });
+  }, [data]);
+
   const acc = PCOL[person];
   const personTotal = person === "eman" ? emanTot : yehudaTot;
 
@@ -279,6 +321,7 @@ function useShasApp() {
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
     authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent,
+    readerPerek, openReader, closeReader, readerNav,
   };
 }
 
