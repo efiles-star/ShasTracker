@@ -1,0 +1,61 @@
+/* Generates data/shas-seed.csv — the 525-row source-of-truth seed for the Google Sheet.
+ *
+ * Columns match what the Apps Script doGet returns and the frontend expects:
+ *   seder, masechta, perek_num, perek_id, eman_done, eman_date, yehuda_done, yehuda_date
+ *
+ * The Seder → [masechta, perek count] map is identical to shas.js (525 perakim total),
+ * so perek_id values line up exactly with what the frontend writes back via doPost.
+ *
+ * Run:  node scripts/generate-seed-csv.mjs
+ */
+import { writeFileSync } from "node:fs";
+
+// seder → [masechta, perek count]   (525 perakim total)
+const SEDARIM = [
+  ["Zeraim", [["Berachos", 9], ["Peah", 8], ["Demai", 7], ["Kilayim", 9], ["Sheviis", 10],
+    ["Terumos", 11], ["Maasros", 5], ["Maaser Sheni", 5], ["Challah", 4], ["Orlah", 3], ["Bikkurim", 4]]],
+  ["Moed", [["Shabbos", 24], ["Eruvin", 10], ["Pesachim", 10], ["Shekalim", 8], ["Yoma", 8],
+    ["Sukkah", 5], ["Beitzah", 5], ["Rosh Hashanah", 4], ["Taanis", 4], ["Megillah", 4],
+    ["Moed Katan", 3], ["Chagigah", 3]]],
+  ["Nashim", [["Yevamos", 16], ["Kesubos", 13], ["Nedarim", 11], ["Nazir", 9], ["Sotah", 9],
+    ["Gittin", 9], ["Kiddushin", 4]]],
+  ["Nezikin", [["Bava Kamma", 10], ["Bava Metzia", 10], ["Bava Basra", 10], ["Sanhedrin", 11],
+    ["Makkos", 3], ["Shevuos", 8], ["Eduyos", 8], ["Avodah Zarah", 5], ["Avos", 6], ["Horayos", 3]]],
+  ["Kodashim", [["Zevachim", 14], ["Menachos", 13], ["Chullin", 12], ["Bechoros", 9], ["Arachin", 9],
+    ["Temurah", 7], ["Kerisos", 6], ["Meilah", 6], ["Tamid", 7], ["Middos", 5], ["Kinnim", 3]]],
+  ["Taharos", [["Keilim", 30], ["Ohalos", 18], ["Negaim", 14], ["Parah", 12], ["Taharos", 10],
+    ["Mikvaos", 10], ["Niddah", 10], ["Machshirin", 6], ["Zavim", 5], ["Tevul Yom", 4],
+    ["Yadayim", 4], ["Uktzin", 3]]],
+];
+
+// Eman's already-completed masechtos (seeded done). Dates left blank — real completion
+// dates are unknown; marking from the dashboard going forward will date new completions,
+// and these can be backfilled in the Sheet at any time.
+const EMAN_DONE_MASECHTOS = new Set(["Pesachim", "Sukkah", "Avos", "Sanhedrin", "Makkos"]);
+// Yehuda has no seeded progress yet.
+const YEHUDA_DONE_MASECHTOS = new Set();
+
+const header = ["seder", "masechta", "perek_num", "perek_id", "eman_done", "eman_date", "yehuda_done", "yehuda_date"];
+const rows = [header.join(",")];
+let total = 0, emanDone = 0, yehudaDone = 0;
+
+for (const [seder, masechtos] of SEDARIM) {
+  for (const [masechta, count] of masechtos) {
+    for (let n = 1; n <= count; n++) {
+      const eman = EMAN_DONE_MASECHTOS.has(masechta);
+      const yehuda = YEHUDA_DONE_MASECHTOS.has(masechta);
+      if (eman) emanDone++;
+      if (yehuda) yehudaDone++;
+      total++;
+      rows.push([
+        seder, masechta, n, `${seder}.${masechta}.${n}`,
+        eman ? "TRUE" : "FALSE", "",
+        yehuda ? "TRUE" : "FALSE", "",
+      ].join(","));
+    }
+  }
+}
+
+if (total !== 525) throw new Error(`Expected 525 perakim, got ${total}`);
+writeFileSync(new URL("../data/shas-seed.csv", import.meta.url), rows.join("\n") + "\n");
+console.log(`Wrote data/shas-seed.csv — ${total} perakim (Eman ${emanDone} done, Yehuda ${yehudaDone} done).`);
