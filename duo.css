@@ -443,7 +443,31 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .raillang button.on { background: var(--ink); color: #fff; }
 
 @media (max-width: 1180px) { .duoweb { grid-template-columns: 84px minmax(0, 640px) 300px; } .websidebar .brand .bt, .websidebar .brand .bs, .webnavbtn span:last-child, .webpbtn .meta { display: none; } .websidebar .brand { justify-content: center; } .webnavbtn { justify-content: center; } .webpbtn { justify-content: center; } }
-@media (max-width: 900px) { .duoweb { grid-template-columns: 1fr; } .websidebar, .webrail { display: none; } }
+/* mobile: sidebar + rail collapse into a bottom tab bar and compact header controls */
+.webmobilenav, .webcenterhead .mobilectl { display: none; }
+@media (max-width: 900px) {
+  .duoweb { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; height: 100dvh; gap: 0; padding: 0; }
+  .websidebar, .webrail { display: none; }
+  .webcenter { border-inline: none; }
+  .webcenterhead { padding: 12px 14px 10px; }
+  .webcenterhead .mobilectl { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+  .mobilectl .mpbtn {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    color: #fff; font-weight: 900; font-size: 14px; opacity: .4; flex: 0 0 auto;
+  }
+  .mobilectl .mpbtn.on { opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--pc); }
+  .webmobilenav {
+    display: flex; gap: 4px; padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+    background: var(--bg); border-top: 2px solid var(--line);
+  }
+  .wmnbtn {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 2px; border-radius: 14px; color: var(--ink-3);
+    font-weight: 900; font-size: 10.5px; letter-spacing: .2px;
+  }
+  .wmnbtn .lb { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wmnbtn.on { color: var(--acc-d); background: color-mix(in srgb, var(--acc) 14%, #fff); }
+}
 
 /* ============================== PIN (currently-learning) BUTTON ============================== */
 .pinbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); margin-inline-start: 4px; transition: background .12s, color .12s; flex: 0 0 auto; }
