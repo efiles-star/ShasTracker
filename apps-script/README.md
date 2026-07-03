@@ -9,8 +9,8 @@ frontend reads and writes (`doGet` / `doPost`). This clones the Shabbat website'
 2. Rename the first tab to **`Shas`** (the script's `SHEET_NAME`; change the constant if you use another name).
 3. **File → Import → Upload** [`../data/shas-seed.csv`](../data/shas-seed.csv) →
    **Import location: "Replace current sheet"**, **Separator: comma** → Import.
-   You now have a header row + **525 perek rows**, with Eman's completed masechtos
-   (Pesachim, Sukkah, Avos, Sanhedrin, Makkos) already marked `TRUE`.
+   You now have a header row + **525 perek rows**, with Eman's completed masechtot
+   (Pesachim, Sukkah, Avot, Sanhedrin, Makkot) already marked `TRUE`.
 
 The columns are: `seder`, `masechta`, `perek_num`, `perek_id`, `eman_done`, `eman_date`,
 `yehuda_done`, `yehuda_date`. The script looks columns up **by header name**, so you can
@@ -18,6 +18,13 @@ reorder them, but don't rename them.
 
 > **Dates:** seeded completions are left blank (real dates unknown). New marks made from
 > the dashboard auto-fill today's date; you can also backfill real dates in the Sheet.
+
+> **Naming:** the seed CSV now uses modern Sephardi transliteration (Avot, Shabbat,
+> Berachot). If your live Sheet was seeded from the older Ashkenazi-spelled CSV
+> (Avos, Shabbos, Berachos), **leave it alone** — the frontend normalizes those
+> spellings at read time and keeps writing by the original `perek_id`, so everything
+> works without touching the Sheet. Only a *fresh* Sheet should import this CSV;
+> re-importing over a live one would wipe recorded progress.
 
 ## 2. Add the script
 

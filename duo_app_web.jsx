@@ -6,7 +6,8 @@ function WebApp() {
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent } = A;
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent,
+    readerPerek, openReader, closeReader, readerNav } = A;
   const pct = window.pct;
 
   const shellStyle = { "--acc": acc.c, "--acc-d": acc.d };
@@ -50,13 +51,13 @@ function WebApp() {
           <h1>{viewTitle}</h1>
         </div>
         <div className="webscroll">
-          {view === "path" && <window.PathView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} chestTap={chestTap} nums={tw.nodeNumbers}
+          {view === "path" && <window.PathView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader} chestTap={chestTap} nums={tw.nodeNumbers}
             collapsedSed={collapsedSed} collapsedMas={collapsedMas} toggleSeder={toggleSeder} toggleMasechta={toggleMasechta} />}
           {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} />}
-          {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle}
+          {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader}
             search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter}
             data={data} onSetCurrent={requestSetCurrent} />}
-          {view === "now" && <window.NowLearningView S={S} lang={lang} groups={groups} data={data} person={person} onToggle={onToggle} onSetCurrent={requestSetCurrent} />}
+          {view === "now" && <window.NowLearningView S={S} lang={lang} groups={groups} data={data} person={person} onToggle={onToggle} onSetCurrent={requestSetCurrent} onRead={openReader} />}
         </div>
       </main>
 
@@ -92,6 +93,8 @@ function WebApp() {
         </div>
       </aside>
 
+      <window.ReaderModal S={S} lang={lang} rtl={rtl} reader={readerPerek} person={person}
+        onClose={closeReader} onNav={readerNav} onToggle={onToggle} />
       <window.Celebration cele={cele} onClose={() => setCele(null)} />
       <window.AuthGate open={authOpen} error={authError} onSubmit={submitWriteKey} onCancel={closeAuthGate} S={S} />
       <div className={"toast" + (toast ? " show" : "")}>{toast}</div>
