@@ -62,6 +62,8 @@ const STR = {
     perSeder: "By Seder", perSederSub: "Done vs. total in each Seder",
     weekly: "This week", weeklySub: "Perakim in the last 7 days",
     loading: "Loading Shas…", saveErr: "Couldn't save — try again", loadErr: "Couldn't load — check the connection",
+    authTitle: "Enter password to save", authSub: "Viewing is open to everyone — marking progress needs the password.",
+    authPlaceholder: "Password", authSubmit: "Unlock", authCancel: "Cancel", authWrong: "Wrong password — try again",
   },
   he: {
     title: "מעקב ש״ס", subtitle: n => "משנה · " + n + " פרקים",
@@ -85,6 +87,8 @@ const STR = {
     perSeder: "לפי סדר", perSederSub: "הושלם מול סה״כ בכל סדר",
     weekly: "השבוע", weeklySub: "פרקים ב-7 הימים האחרונים",
     loading: "טוען ש״ס…", saveErr: "השמירה נכשלה — נסה שוב", loadErr: "הטעינה נכשלה — בדוק את החיבור",
+    authTitle: "הזן סיסמה כדי לשמור", authSub: "הצפייה פתוחה לכולם — סימון התקדמות דורש סיסמה.",
+    authPlaceholder: "סיסמה", authSubmit: "פתח", authCancel: "ביטול", authWrong: "סיסמה שגויה — נסה שוב",
   },
 };
 
@@ -92,6 +96,10 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "nodeNumbers": true,
   "celebrations": true
 }/*EDITMODE-END*/;
+
+/* ---------- write-gate (read stays public; writes need a password the backend checks) ---------- */
+const WRITE_KEY_STORAGE = "shas2-writekey";
+const getWriteKey = () => localStorage.getItem(WRITE_KEY_STORAGE) || "";
 
 /* ---------- shared app-state hook ---------- */
 function useShasApp() {
@@ -112,7 +120,10 @@ function useShasApp() {
   const [toast, setToast] = useState("");
   const [collapsedSed, setCollapsedSed] = useState(() => new Set());
   const [collapsedMas, setCollapsedMas] = useState(() => new Set());
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
   const toastTimer = useRef(null);
+  const pendingToggleRef = useRef(null);
 
   const toggleSeder = useCallback(s => setCollapsedSed(prev => {
     const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n;
@@ -142,35 +153,69 @@ function useShasApp() {
       ? { ...p, [who + "_done"]: done, [who + "_date"]: done ? todayISO() : null } : p) }));
   }, []);
 
-  const onToggle = useCallback((p) => {
+  const performToggle = useCallback((p, password) => {
     const who = person;
     const next = !p[who + "_done"];
     setDone(p.perek_id, who, next);
-    apiPost({ perek_id: p.perek_id, person: who, done: next, date: next ? todayISO() : null })
-      .then(res => { if (!res || !res.ok) throw new Error("nok"); })
+    apiPost({ perek_id: p.perek_id, person: who, done: next, date: next ? todayISO() : null, password })
+      .then(res => {
+        if (!res || !res.ok) {
+          setDone(p.perek_id, who, !next);
+          if (res && res.error === "bad password") {
+            localStorage.removeItem(WRITE_KEY_STORAGE);
+            pendingToggleRef.current = p;
+            setAuthError(S.authWrong);
+            setAuthOpen(true);
+          } else {
+            showToast(S.saveErr);
+          }
+          return;
+        }
+        localStorage.setItem(WRITE_KEY_STORAGE, password);
+
+        if (!next) { showToast(S.unmarked); return; }
+        if (!tw.celebrations) return;
+
+        const isDoneX = x => (x.perek_id === p.perek_id ? true : x[who + "_done"]);
+        const masSibs = data.perakim.filter(x => x.seder === p.seder && x.masechta === p.masechta);
+        const masFull = masSibs.every(isDoneX);
+        const sedSibs = data.perakim.filter(x => x.seder === p.seder);
+        const sedFull = sedSibs.every(isDoneX);
+        const col = window.sederColor(window.SEDER_ORDER.indexOf(p.seder));
+
+        if (sedFull) {
+          setCele({ level: "seder", col, yell: S.incredible, sub: sederName(p.seder, lang) + " " + S.complete,
+            meta: S.fullSeder, xp: S.xpN(sedSibs.length), cta: S.onward });
+        } else if (masFull) {
+          setCele({ level: "masechta", col, yell: S.mazel, sub: masName(p.masechta, lang) + " " + S.complete,
+            meta: S.fullMasechta, xp: S.xpN(masSibs.length), cta: S.onward });
+        } else {
+          setCele({ level: "perek", col, yell: S.yasher, sub: S.perekComplete,
+            meta: masName(p.masechta, lang) + " · " + S.masechta + " " + p.perek_num, xp: S.xpPerek, cta: S.keepGoing });
+        }
+      })
       .catch(() => { setDone(p.perek_id, who, !next); showToast(S.saveErr); });
-
-    if (!next) { showToast(S.unmarked); return; }
-    if (!tw.celebrations) return;
-
-    const isDoneX = x => (x.perek_id === p.perek_id ? true : x[who + "_done"]);
-    const masSibs = data.perakim.filter(x => x.seder === p.seder && x.masechta === p.masechta);
-    const masFull = masSibs.every(isDoneX);
-    const sedSibs = data.perakim.filter(x => x.seder === p.seder);
-    const sedFull = sedSibs.every(isDoneX);
-    const col = window.sederColor(window.SEDER_ORDER.indexOf(p.seder));
-
-    if (sedFull) {
-      setCele({ level: "seder", col, yell: S.incredible, sub: sederName(p.seder, lang) + " " + S.complete,
-        meta: S.fullSeder, xp: S.xpN(sedSibs.length), cta: S.onward });
-    } else if (masFull) {
-      setCele({ level: "masechta", col, yell: S.mazel, sub: masName(p.masechta, lang) + " " + S.complete,
-        meta: S.fullMasechta, xp: S.xpN(masSibs.length), cta: S.onward });
-    } else {
-      setCele({ level: "perek", col, yell: S.yasher, sub: S.perekComplete,
-        meta: masName(p.masechta, lang) + " · " + S.masechta + " " + p.perek_num, xp: S.xpPerek, cta: S.keepGoing });
-    }
   }, [person, data, tw.celebrations, S, lang, setDone, showToast]);
+
+  const onToggle = useCallback((p) => {
+    const key = getWriteKey();
+    if (key) { performToggle(p, key); return; }
+    pendingToggleRef.current = p;
+    setAuthError("");
+    setAuthOpen(true);
+  }, [performToggle]);
+
+  const submitWriteKey = useCallback((password) => {
+    const p = pendingToggleRef.current;
+    setAuthOpen(false);
+    if (!p) return;
+    performToggle(p, password);
+  }, [performToggle]);
+
+  const closeAuthGate = useCallback(() => {
+    setAuthOpen(false);
+    pendingToggleRef.current = null;
+  }, []);
 
   const chestTap = useCallback((m, col, ready) => {
     if (ready) setCele({ level: "masechta", col, yell: S.mazel, sub: masName(m.masechta, lang) + " " + S.complete,
@@ -189,6 +234,7 @@ function useShasApp() {
     collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
+    authOpen, authError, submitWriteKey, closeAuthGate,
   };
 }
 

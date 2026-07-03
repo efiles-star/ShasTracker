@@ -33,7 +33,28 @@ reorder them, but don't rename them.
 > Re-deploying: after editing the script, use **Deploy → Manage deployments → edit →
 > Version: New version** so the live `/exec` URL picks up your changes.
 
-## 4. Wire the frontend
+## 4. Set the write password
+
+**Reading the board stays public — no login, matching the PRD.** Marking a perek
+(`doPost`) requires a password, checked entirely server-side:
+
+1. In the Apps Script editor: **Project Settings** (gear icon, left sidebar).
+2. Under **Script Properties → Add script property**:
+   - Property: `WRITE_PASSWORD`
+   - Value: your password
+3. **Save**.
+
+The password lives only in this Script Property — never in `Code.gs`, never in git, and
+never in the public frontend source. You can change it any time here with no redeploy
+and no site update needed. If it's unset, every write is rejected with
+`"server not configured: set the WRITE_PASSWORD script property"`.
+
+The first time anyone taps a perek on the site, a password prompt appears; once entered
+correctly it's remembered in that browser (`localStorage`) so they aren't asked again on
+that device. A wrong password shows an error and re-prompts; nothing is saved until it's
+correct.
+
+## 5. Wire the frontend
 
 In [`../duo_core.jsx`](../duo_core.jsx) replace:
 
@@ -49,7 +70,9 @@ starts with `PASTE_`).
 
 **`GET`** → `{ perakim: [ { perek_id, seder, masechta, perek_num, eman_done, eman_date, yehuda_done, yehuda_date } ] }`
 
-**`POST`** body `{ perek_id, person: "eman"|"yehuda", done: boolean, date: "YYYY-MM-DD"|null }` → `{ ok: true }`
+**`POST`** body `{ perek_id, person: "eman"|"yehuda", done: boolean, date: "YYYY-MM-DD"|null, password: string }` → `{ ok: true }`,
+or `{ ok: false, error: "bad password" }` (also returned for a missing/empty `password` field) if it doesn't match the
+`WRITE_PASSWORD` script property.
 
 The frontend posts `Content-Type: text/plain` on purpose so the browser sends no CORS
 preflight — Apps Script web apps don't answer preflight `OPTIONS`. Writes are serialized

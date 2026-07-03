@@ -140,6 +140,30 @@ function Celebration({ cele, onClose }) {
   );
 }
 
+/* ------------------------ password gate (writes only — reading Shas stays public) ------------------------ */
+function AuthGate({ open, error, onSubmit, onCancel, S }) {
+  const [val, setVal] = React.useState("");
+  React.useEffect(() => { if (open) setVal(""); }, [open]);
+  if (!open) return null;
+  const submit = e => { e.preventDefault(); if (val.trim()) onSubmit(val.trim()); };
+  return (
+    <div className="authgate-overlay" onClick={onCancel}>
+      <form className="authgate-card" onClick={e => e.stopPropagation()} onSubmit={submit}>
+        <div className="authgate-lock"><DIcon d={DP.lock} w={26} s={2.2} /></div>
+        <div className="authgate-title">{S.authTitle}</div>
+        <div className="authgate-sub">{S.authSub}</div>
+        <input className="authgate-input" type="password" inputMode="numeric" autoFocus
+          value={val} onChange={e => setVal(e.target.value)} placeholder={S.authPlaceholder} />
+        {error ? <div className="authgate-err">{error}</div> : null}
+        <div className="authgate-actions">
+          <button type="button" className="authgate-cancel" onClick={onCancel}>{S.authCancel}</button>
+          <button type="submit" className="authgate-submit">{S.authSubmit}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 /* ================================ PATH VIEW ================================ */
 function PathView({ S, lang, groups, person, onToggle, chestTap, nums, collapsedSed, collapsedMas, toggleSeder, toggleMasechta }) {
   const sederName = window.sederName, masName = window.masName, pct = window.pct;
@@ -228,4 +252,4 @@ function PathView({ S, lang, groups, person, onToggle, chestTap, nums, collapsed
   );
 }
 
-Object.assign(window, { DIcon, DP, SEDER_COLORS, sederColor, SEDER_EMOJI, MAS_EMOJI, CONFETTI_COLORS, PathView, Celebration });
+Object.assign(window, { DIcon, DP, SEDER_COLORS, sederColor, SEDER_EMOJI, MAS_EMOJI, CONFETTI_COLORS, PathView, Celebration, AuthGate });
