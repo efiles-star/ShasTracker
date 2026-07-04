@@ -211,7 +211,7 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
               <div className="pacebars">
                 {arr.map((v, i) => (
                   <div className="pb" key={i}>
-                    <div className="b" style={{ height: (v / maxDay * 54) + "px", background: v ? c : "#ececec" }} />
+                    <div className="b" style={{ height: (v / maxDay * 54) + "px", background: v ? c : "var(--bar-empty, #ececec)" }} />
                     <div className="d">{days[i].lbl}</div>
                   </div>
                 ))}

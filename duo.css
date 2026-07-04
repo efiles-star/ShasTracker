@@ -446,7 +446,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* mobile: sidebar + rail collapse into a bottom tab bar and compact header controls */
 .webmobilenav, .webcenterhead .mobilectl { display: none; }
 @media (max-width: 900px) {
-  .duoweb { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; height: 100dvh; gap: 0; padding: 0; }
+  .duoweb { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; height: 100dvh; gap: 0; padding: 0; }
   .websidebar, .webrail { display: none; }
   .webcenter { border-inline: none; }
   .webcenterhead { padding: 12px 14px 10px; }

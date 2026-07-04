@@ -2,7 +2,7 @@
 
 function WebApp() {
   const A = window.useShasApp();
-  const { tw, setTweak, lang, S, rtl, switchLang, data, view, setPersistView, person, setPersistPerson,
+  const { tw, setTweak, lang, S, rtl, switchLang, skin, switchSkin, data, view, setPersistView, person, setPersistPerson,
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
@@ -13,16 +13,18 @@ function WebApp() {
   const shellStyle = { "--acc": acc.c, "--acc-d": acc.d };
 
   if (!data) return (
-    <div className="duoweb" style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
+    <div className="duoweb" data-skin={skin} style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
       <div className="loading">{S.loading}</div>
     </div>
   );
 
   const viewTitle = view === "path" ? S.navPath : view === "stats" ? S.navStats : view === "search" ? S.navSearch : S.navNow;
-  const NAVS = [["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search], ["now", S.navNow, window.DP.pin]];
+  const ALL_NAVS = [["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search], ["now", S.navNow, window.DP.pin]];
+  // EmanOS is a minimal skin — only Stats and Search are offered
+  const NAVS = skin === "eman" ? ALL_NAVS.filter(([k]) => k === "stats" || k === "search") : ALL_NAVS;
 
   return (
-    <div className="duoweb" style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
+    <div className="duoweb" data-skin={skin} style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
       <aside className="websidebar">
         <div className="brand">
           <div className="mark"><window.DIcon d={window.DP.book} w={24} s={2.2} /></div>
@@ -62,6 +64,10 @@ function WebApp() {
             <span className="flagtoggle">
               <button className={lang === "en" ? "on" : ""} onClick={() => switchLang("en")}>EN</button>
               <button className={lang === "he" ? "on" : ""} onClick={() => switchLang("he")}>עב</button>
+            </span>
+            <span className="flagtoggle">
+              <button className={skin === "duo" ? "on" : ""} onClick={() => switchSkin("duo")} title="Duolingo theme" aria-label="Duolingo theme">D</button>
+              <button className={skin === "eman" ? "on" : ""} onClick={() => switchSkin("eman")} title="EmanOS theme" aria-label="EmanOS theme">E</button>
             </span>
           </div>
         </div>
@@ -104,6 +110,14 @@ function WebApp() {
           <div className="raillang">
             <button className={lang === "en" ? "on" : ""} onClick={() => switchLang("en")}>English</button>
             <button className={lang === "he" ? "on" : ""} onClick={() => switchLang("he")}>עברית</button>
+          </div>
+        </div>
+
+        <div className="railcard">
+          <div className="rh">{S.theme}</div>
+          <div className="raillang">
+            <button className={skin === "duo" ? "on" : ""} onClick={() => switchSkin("duo")}>Duolingo</button>
+            <button className={skin === "eman" ? "on" : ""} onClick={() => switchSkin("eman")}>EmanOS</button>
           </div>
         </div>
       </aside>

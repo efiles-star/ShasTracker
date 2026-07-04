@@ -18,6 +18,7 @@ See [`docs/Mishnah-Shas-Tracker-PRD.md`](docs/Mishnah-Shas-Tracker-PRD.md) for t
 | `index.html` | Entry point — the v2 **Web** shell (3-column desktop layout). |
 | `Shas Tracker v2 Web.html` | Original design-named copy of the entry (identical to `index.html`). |
 | `duo.css` | All styling — the Duolingo-style trail, cards, charts, celebrations. |
+| `eman.css` | The **EmanOS** theme — a minimal cream/ink/steel-blue skin (Stats + Search only), incl. dark mode. Switched from the Theme card in the right rail. |
 | `shas.js` | Full 525-perek dataset + Hebrew names. Mirrors the live Apps Script GET shape; used until `SCRIPT_URL` is wired. |
 | `duo_core.jsx` | Shared state hook, i18n (English / עברית), and the `doGet`/`doPost` API layer. |
 | `duo_path.jsx` | Icons, Seder colors, the winding **Path** view, and celebration modal. |
