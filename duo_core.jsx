@@ -86,6 +86,7 @@ const STR = {
     readerRetry: "Try again", openSefaria: "Open on Sefaria",
     modeBoth: "Both", modeHe: "עברית", modeEn: "English",
     markLearned: "Mark learned", learned: "Learned ✓",
+    theme: "Theme",
   },
   he: {
     title: "מעקב ש״ס", subtitle: n => "משנה · " + n + " פרקים",
@@ -120,6 +121,7 @@ const STR = {
     readerRetry: "נסה שוב", openSefaria: "פתח בספריא",
     modeBoth: "שניהם", modeHe: "עברית", modeEn: "English",
     markLearned: "סמן כנלמד", learned: "נלמד ✓",
+    theme: "עיצוב",
   },
 };
 
@@ -137,6 +139,7 @@ function useShasApp() {
   const useTw = window.useTweaks;
   const [tw, setTweak] = useTw(TWEAK_DEFAULTS);
   const [lang, setLang] = useState(() => localStorage.getItem("shas2-lang") || "en");
+  const [skin, setSkin] = useState(() => localStorage.getItem("shas2-skin") || "duo");
   const S = STR[lang];
   const rtl = lang === "he";
 
@@ -167,6 +170,7 @@ function useShasApp() {
   const setPersistPerson = p => { setPerson(p); localStorage.setItem("shas2-person", p); };
   const setPersistView = v => { setView(v); localStorage.setItem("shas2-view", v); };
   const switchLang = l => { setLang(l); localStorage.setItem("shas2-lang", l); };
+  const switchSkin = k => { setSkin(k); localStorage.setItem("shas2-skin", k); };
 
   const showToast = useCallback(msg => {
     setToast(msg); clearTimeout(toastTimer.current);
@@ -312,9 +316,12 @@ function useShasApp() {
   const acc = PCOL[person];
   const personTotal = person === "eman" ? emanTot : yehudaTot;
 
+  // EmanOS is a stats+search-only skin — any other persisted view falls back to stats
+  const effView = skin === "eman" && view !== "stats" && view !== "search" ? "stats" : view;
+
   return {
-    tw, setTweak, lang, S, rtl, switchLang,
-    data, view, setPersistView, person, setPersistPerson,
+    tw, setTweak, lang, S, rtl, switchLang, skin, switchSkin,
+    data, view: effView, setPersistView, person, setPersistPerson,
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast,
     collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
