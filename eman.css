@@ -115,6 +115,9 @@ body:has(.duoweb[data-skin="eman"]) { background: #efeadd; }
 .duoweb[data-skin="eman"] .pinbtn { color: var(--ink-3); }
 .duoweb[data-skin="eman"] .pinbtn:hover { background: var(--soft); }
 .duoweb[data-skin="eman"] .pinbtn.on { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .nextbtn { color: var(--ink-3); }
+.duoweb[data-skin="eman"] .nextbtn:hover { background: var(--soft); }
+.duoweb[data-skin="eman"] .nextbtn.on { background: var(--acc); color: var(--on-acc); }
 
 .duoweb[data-skin="eman"] .mtile { background: var(--surface); border: 1px solid var(--line); color: var(--ink-3); font-family: var(--fmono); font-weight: 400; font-variant-numeric: tabular-nums; }
 .duoweb[data-skin="eman"] .mtile.done { background: var(--acc) !important; border-color: var(--acc); color: var(--on-acc) !important; font-weight: 700; }

@@ -83,7 +83,7 @@
   assign("eman", 300, 0.84, 0.05, "2026-02-15", 0x1a2b3c);
   assign("yehuda", 210, 0.80, 0.04, "2026-03-08", 0x9f8e7d);
 
-  window.SHAS_MOCK = { perakim, current: { eman: null, yehuda: null } };
+  window.SHAS_MOCK = { perakim, current: { eman: null, yehuda: null }, next: { eman: [], yehuda: [] } };
   window.SEDER_ORDER = SEDER_ORDER;
 
   // Legacy Ashkenazi spellings (as seeded in the live Sheet) → Sephardi display

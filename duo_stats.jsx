@@ -6,11 +6,12 @@ const dAgoISO = n => { const d = new Date(D_TODAY); d.setDate(d.getDate() - n); 
 const dpct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
 /* ================================ SEARCH ================================ */
-function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent }) {
+function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent, onNextToggle }) {
   const sederName = window.sederName, masName = window.masName;
   const q = search.trim().toLowerCase();
   const SEDER_ORDER = window.SEDER_ORDER;
   const currentMasechta = data.current ? data.current[person] : null;
+  const nextList = (data.next && data.next[person]) || [];
 
   const cards = [];
   groups.forEach((g, si) => {
@@ -49,6 +50,7 @@ function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSear
         ? <div className="searchhint">{status === "remaining" ? S.allDoneHint : status === "done" ? S.noneDone : S.noHits}</div>
         : cards.map(c => {
           const isPinned = currentMasechta === c.masechta;
+          const isNext = nextList.includes(c.masechta);
           return (
           <div className="mcard" key={c.seder + c.masechta}>
             <div className="mh">
@@ -58,6 +60,11 @@ function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSear
                 title={isPinned ? S.unpinCurrent : S.setCurrent}
                 onClick={() => onSetCurrent(isPinned ? null : c.masechta)}>
                 <window.DIcon d={window.DP.pin} w={16} s={2.2} fill={isPinned} />
+              </button>
+              <button className={"nextbtn" + (isNext ? " on" : "")}
+                title={isNext ? S.removeNext : S.addNext}
+                onClick={() => onNextToggle(c.masechta)}>
+                <window.DIcon d={isNext ? window.DP.check : window.DP.nextUp} w={16} s={2.4} />
               </button>
               <button className="mread" style={{ color: c.col.d }} title={S.read}
                 onClick={() => onRead(c.peraks[0])}>
@@ -225,7 +232,7 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
 }
 
 /* ============================ NOW LEARNING ============================ */
-function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent, onRead }) {
+function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent, onNextToggle, onRead }) {
   const masName = window.masName, sederName = window.sederName, PCOL = window.PCOL;
   const DIcon = window.DIcon, DP = window.DP;
 
@@ -235,6 +242,10 @@ function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent
       if (m) return { g, m };
     }
     return null;
+  };
+  const masCol = name => {
+    const f = findMasechta(name);
+    return f ? window.sederColor(window.SEDER_ORDER.indexOf(f.g.seder)) : null;
   };
 
   const people = [
@@ -251,6 +262,7 @@ function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent
         const col = found ? window.sederColor(window.SEDER_ORDER.indexOf(found.g.seder)) : null;
         const doneCount = found ? found.m.perakim.filter(p => p[pp.key + "_done"]).length : 0;
         const Tile = isActive ? "button" : "div";
+        const nextList = (data.next && data.next[pp.key]) || [];
 
         return (
           <div className="nowcard" key={pp.key}>
@@ -290,6 +302,34 @@ function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent
                 </div>
               </>
             )}
+
+            <div className="nextsec">
+              <div className="nexthead">{S.nextUp}</div>
+              {nextList.length === 0 ? (
+                <div className="nextempty">{S.noNext} {isActive && S.noNextHint}</div>
+              ) : (
+                <ol className="nextlist">
+                  {nextList.map((nm, i) => {
+                    const nc = masCol(nm);
+                    const f = findMasechta(nm);
+                    const nd = f ? f.m.perakim.filter(p => p[pp.key + "_done"]).length : 0;
+                    const nt = f ? f.m.perakim.length : 0;
+                    return (
+                      <li className="nextrow" key={nm}>
+                        <span className="nnum" style={{ background: nc ? nc.c : "var(--ink-3)", color: nc ? nc.on : "#fff" }}>{i + 1}</span>
+                        <span className="nnm">{window.MAS_EMOJI[nm] || ""} {masName(nm, lang)}</span>
+                        <span className="nct">{nd}/{nt}</span>
+                        {f && <button className="nread" title={S.read} onClick={() => onRead(f.m.perakim[0])}>
+                          <DIcon d={DP.book} w={15} s={2.4} />
+                        </button>}
+                        {isActive && <button className="nremove" title={S.removeNext} onClick={() => onNextToggle(nm)}>✕</button>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+
             {!isActive && <div className="nowhint">{S.switchToEdit(pp.label)}</div>}
           </div>
         );
