@@ -76,7 +76,7 @@ function WebApp() {
           {view === "path" && <window.PathView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader} chestTap={chestTap} nums={tw.nodeNumbers}
             collapsedSed={collapsedSed} collapsedMas={collapsedMas} toggleSeder={toggleSeder} toggleMasechta={toggleMasechta}
             collapseAllSed={collapseAllSed} expandAllSed={expandAllSed} />}
-          {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} />}
+          {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} person={person} />}
           {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader}
             search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter}
             data={data} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} />}

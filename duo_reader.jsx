@@ -156,4 +156,46 @@ function ReaderModal({ S, lang, rtl, reader, person, onClose, onNav, onToggle })
   );
 }
 
-Object.assign(window, { ReaderModal, fetchPerekText, sefariaTref, toHebNum });
+/* ---- Sefaria SHAPE API: mishnayot-per-perek for a whole masechta ----
+   GET /api/shape/{Mishnah_Title} → [{ chapters: [n1, n2, …] }], where each
+   n is the number of mishnayot in that perek. Cached per masechta in
+   localStorage so the whole Shas is counted from Sefaria once per device.
+   This is the authoritative source (same site as the reader), so remaining
+   mishnayot is exact rather than a hardcoded guess. */
+const SEFARIA_SHAPE_API = "https://www.sefaria.org/api/shape/";
+const SHAPE_MEM = new Map();
+const shapeCacheKey = title => "shas2-shape:" + title;
+
+async function fetchMasechtaShape(masechta) {
+  const title = sefariaTitle(masechta);
+  if (SHAPE_MEM.has(title)) return SHAPE_MEM.get(title);
+  try {
+    const raw = localStorage.getItem(shapeCacheKey(title));
+    if (raw) { const c = JSON.parse(raw); if (Array.isArray(c) && c.length) { SHAPE_MEM.set(title, c); return c; } }
+  } catch (e) { /* corrupt cache — refetch */ }
+  const r = await fetch(SEFARIA_SHAPE_API + encodeURIComponent(title.replace(/ /g, "_")));
+  if (!r.ok) throw new Error("Sefaria shape failed: " + r.status);
+  const json = await r.json();
+  const entry = Array.isArray(json) ? json[0] : json;
+  const chapters = entry && entry.chapters;
+  if (!Array.isArray(chapters) || !chapters.length) throw new Error("no chapters in shape");
+  const nums = chapters.map(Number);
+  SHAPE_MEM.set(title, nums);
+  try { localStorage.setItem(shapeCacheKey(title), JSON.stringify(nums)); } catch (e) { /* storage full */ }
+  return nums;
+}
+
+/* Fetch shapes for every masechta in the given list. Returns a map
+   { masechta: [perek1Count, perek2Count, …] }. Rejects only if EVERY
+   masechta fails (so a couple of Sefaria hiccups don't block the whole thing). */
+async function fetchAllShapes(masechtot) {
+  const results = await Promise.all(masechtot.map(m =>
+    fetchMasechtaShape(m).then(ch => [m, ch]).catch(() => [m, null])));
+  const map = {};
+  let ok = 0;
+  results.forEach(([m, ch]) => { if (ch) { map[m] = ch; ok++; } });
+  if (ok === 0) throw new Error("no shapes fetched");
+  return map;
+}
+
+Object.assign(window, { ReaderModal, fetchPerekText, sefariaTref, toHebNum, fetchMasechtaShape, fetchAllShapes });
