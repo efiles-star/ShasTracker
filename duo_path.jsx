@@ -22,6 +22,9 @@ const DP = {
   lock:   "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
   chev:   "M9 18l6-6-6-6",
   pin:    "M12 21s7-7.58 7-12A7 7 0 0 0 5 9c0 4.42 7 12 7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  collapseAll: "M7 13l5-5 5 5M7 19l5-5 5 5", // double chevron up
+  expandAll:   "M7 5l5 5 5-5M7 11l5 5 5-5",   // double chevron down
+  nextUp:  "M4 6h10M4 12h10M4 18h7M17 15l3 3 3-3M20 18V9", // list + down-arrow (queue)
 };
 
 /* emoji — one per Seder, one per Masechta (keyed by the English name in shas.js) */
@@ -170,8 +173,10 @@ function AuthGate({ open, error, onSubmit, onCancel, S }) {
 }
 
 /* ================================ PATH VIEW ================================ */
-function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, collapsedSed, collapsedMas, toggleSeder, toggleMasechta }) {
+function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, collapsedSed, collapsedMas, toggleSeder, toggleMasechta, collapseAllSed, expandAllSed }) {
   const sederName = window.sederName, masName = window.masName, pct = window.pct;
+  // all collapsed → offer Expand all; otherwise → Collapse all
+  const allCollapsed = groups.length > 0 && groups.every(g => collapsedSed.has(g.seder));
 
   // first not-done perek for this person, in Shas order → the "current" node
   let currentId = null;
@@ -188,6 +193,12 @@ function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, c
 
   return (
     <div className="pathwrap">
+      <div className="pathtools">
+        <button className="collapsebtn" onClick={() => (allCollapsed ? expandAllSed() : collapseAllSed())}>
+          <DIcon d={allCollapsed ? DP.expandAll : DP.collapseAll} w={16} s={2.4} />
+          {allCollapsed ? S.expandAll : S.collapseAll}
+        </button>
+      </div>
       {groups.map((g, si) => {
         const col = sederColor(si);
         const sederDoneCount = person === "eman" ? g.eman : g.yehuda;

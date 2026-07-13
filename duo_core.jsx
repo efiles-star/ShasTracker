@@ -13,10 +13,13 @@ const USE_MOCK = SCRIPT_URL.startsWith("PASTE_");
 function normalizeData(json) {
   const MC = window.MAS_CANON || {}, SC = window.SEDER_CANON || {};
   const cur = json.current || {};
+  const nx = json.next || {};
+  const canonList = arr => (Array.isArray(arr) ? arr.map(m => MC[m] || m) : []);
   return { ...json,
     perakim: (json.perakim || []).map(p => ({
       ...p, seder: SC[p.seder] || p.seder, masechta: MC[p.masechta] || p.masechta })),
     current: { eman: MC[cur.eman] || cur.eman || null, yehuda: MC[cur.yehuda] || cur.yehuda || null },
+    next: { eman: canonList(nx.eman), yehuda: canonList(nx.yehuda) },
   };
 }
 async function apiGet() {
@@ -81,6 +84,10 @@ const STR = {
     noCurrent: "Nothing pinned yet.", noCurrentHint: "Pin a masechta from Search to track it here.",
     switchToEdit: who => "Switch to " + who + " to update",
     nowLearningSet: m => "Now learning: " + m, nowLearningCleared: "Unpinned",
+    collapseAll: "Collapse all", expandAll: "Expand all",
+    nextUp: "Next up", addNext: "Add to next up", removeNext: "Remove",
+    noNext: "Nothing queued yet.", noNextHint: "Add a masechta from Search to line it up.",
+    nextAdded: m => "Added to next up: " + m, nextRemoved: "Removed from next up",
     read: "Read", perekWord: "Perek", mishnahWord: "Mishnah",
     readerLoading: "Loading from Sefaria…", readerErr: "Couldn't load the text — check the connection",
     readerRetry: "Try again", openSefaria: "Open on Sefaria",
@@ -116,6 +123,10 @@ const STR = {
     noCurrent: "טרם נבחר דבר.", noCurrentHint: "סמן מסכת ב'חיפוש' כדי לעקוב אחריה כאן.",
     switchToEdit: who => "עבור אל " + who + " כדי לעדכן",
     nowLearningSet: m => "לומד כעת: " + m, nowLearningCleared: "הוסר הסימון",
+    collapseAll: "כווץ הכל", expandAll: "הרחב הכל",
+    nextUp: "הבא בתור", addNext: "הוסף להבא בתור", removeNext: "הסר",
+    noNext: "אין דבר בתור.", noNextHint: "הוסף מסכת מ'חיפוש' כדי להעמיד אותה בתור.",
+    nextAdded: m => "נוסף לתור: " + m, nextRemoved: "הוסר מהתור",
     read: "לימוד", perekWord: "פרק", mishnahWord: "משנה",
     readerLoading: "טוען מספריא…", readerErr: "הטעינה נכשלה — בדוק את החיבור",
     readerRetry: "נסה שוב", openSefaria: "פתח בספריא",
@@ -166,6 +177,9 @@ function useShasApp() {
   const toggleMasechta = useCallback(k => setCollapsedMas(prev => {
     const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n;
   }), []);
+  // Collapse/expand every Seder at once (Path view header control).
+  const collapseAllSed = useCallback(() => setCollapsedSed(new Set(window.SEDER_ORDER)), []);
+  const expandAllSed = useCallback(() => setCollapsedSed(new Set()), []);
 
   const setPersistPerson = p => { setPerson(p); localStorage.setItem("shas2-person", p); };
   const setPersistView = v => { setView(v); localStorage.setItem("shas2-view", v); };
@@ -276,13 +290,56 @@ function useShasApp() {
     setAuthOpen(true);
   }, [performSetCurrent]);
 
+  // ---------- "Next up" — a short ordered queue of masechtot per person ----------
+  const performSetNext = useCallback((nextList, addedName, password) => {
+    const who = person;
+    const prevNext = data.next ? data.next[who] : [];
+    setData(prev => ({ ...prev, next: { ...prev.next, [who]: nextList } }));
+    apiPost({ action: "setNext", person: who, next: nextList, password })
+      .then(res => {
+        if (!res || !res.ok) {
+          setData(prev => ({ ...prev, next: { ...prev.next, [who]: prevNext } }));
+          if (res && res.error === "bad password") {
+            localStorage.removeItem(WRITE_KEY_STORAGE);
+            pendingRef.current = { kind: "setNext", nextList, addedName };
+            setAuthError(S.authWrong);
+            setAuthOpen(true);
+          } else {
+            showToast(S.saveErr);
+          }
+          return;
+        }
+        localStorage.setItem(WRITE_KEY_STORAGE, password);
+        showToast(addedName ? S.nextAdded(masName(addedName, lang)) : S.nextRemoved);
+      })
+      .catch(() => {
+        setData(prev => ({ ...prev, next: { ...prev.next, [who]: prevNext } }));
+        showToast(S.saveErr);
+      });
+  }, [person, data, S, lang, showToast]);
+
+  // add (appended, deduped) or remove one masechta from the active person's queue
+  const requestNextToggle = useCallback((masechta) => {
+    const who = person;
+    const cur = (data.next && data.next[who]) || [];
+    const has = cur.includes(masechta);
+    const nextList = has ? cur.filter(m => m !== masechta) : [...cur, masechta];
+    const addedName = has ? null : masechta;
+    const key = getWriteKey();
+    if (key) { performSetNext(nextList, addedName, key); return; }
+    pendingRef.current = { kind: "setNext", nextList, addedName };
+    setAuthError("");
+    setAuthOpen(true);
+  }, [person, data, performSetNext]);
+
   const submitWriteKey = useCallback((password) => {
     const action = pendingRef.current;
     setAuthOpen(false);
     if (!action) return;
     if (action.kind === "toggle") performToggle(action.p, password);
     else if (action.kind === "setCurrent") performSetCurrent(action.masechta, password);
-  }, [performToggle, performSetCurrent]);
+    else if (action.kind === "setNext") performSetNext(action.nextList, action.addedName, password);
+  }, [performToggle, performSetCurrent, performSetNext]);
 
   const closeAuthGate = useCallback(() => {
     setAuthOpen(false);
@@ -324,10 +381,10 @@ function useShasApp() {
     data, view: effView, setPersistView, person, setPersistPerson,
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast,
-    collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
+    collapsedSed, collapsedMas, toggleSeder, toggleMasechta, collapseAllSed, expandAllSed,
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent,
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle,
     readerPerek, openReader, closeReader, readerNav,
   };
 }

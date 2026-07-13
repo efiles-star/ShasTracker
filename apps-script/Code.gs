@@ -5,7 +5,8 @@
      doGet  → returns the whole board as JSON:
               { perakim: [ { perek_id, seder, masechta, perek_num,
                              eman_done, eman_date, yehuda_done, yehuda_date } ],
-                current: { eman: string|null, yehuda: string|null } }
+                current: { eman: string|null, yehuda: string|null },
+                next:    { eman: string[], yehuda: string[] } }
      doPost → requires a password (reading stays public, writing doesn't);
               dispatches by body.action:
               action "toggle" (default) — mark one (perek_id, person) cell:
@@ -15,6 +16,9 @@
               currently learning:
                 body { action: "setCurrent", person: "eman"|"yehuda",
                        masechta: string|"", password: string }
+              action "setNext" — replace a person's ordered "next up" queue:
+                body { action: "setNext", person: "eman"|"yehuda",
+                       next: string[], password: string }
               → { ok: true } or { ok: false, error: "bad password" }
 
    Deploy: Extensions → Apps Script → paste this → Deploy → New deployment →
@@ -43,6 +47,18 @@ function getCurrentMasechtos_() {
   return {
     eman: props.getProperty("CURRENT_EMAN") || null,
     yehuda: props.getProperty("CURRENT_YEHUDA") || null,
+  };
+}
+
+/* "Next up" — a short ordered queue of masechtot per person, stored as a JSON
+   array string in Script Properties (NEXT_EMAN / NEXT_YEHUDA). Same rationale
+   as current: no Sheet schema change, instant reads. */
+function getNextMasechtos_() {
+  var props = PropertiesService.getScriptProperties();
+  function parse(v) { try { var a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  return {
+    eman: parse(props.getProperty("NEXT_EMAN")),
+    yehuda: parse(props.getProperty("NEXT_YEHUDA")),
   };
 }
 
@@ -92,7 +108,7 @@ function doGet() {
       });
     });
   }
-  return json_({ perakim: perakim, current: getCurrentMasechtos_() });
+  return json_({ perakim: perakim, current: getCurrentMasechtos_(), next: getNextMasechtos_() });
 }
 
 /* ---- POST: requires the write password, then dispatches by action ---- */
@@ -109,7 +125,22 @@ function doPost(e) {
   if (String(body.password) !== expected) return json_({ ok: false, error: "bad password" });
 
   if (body.action === "setCurrent") return handleSetCurrent_(body);
+  if (body.action === "setNext") return handleSetNext_(body);
   return handleToggle_(body);
+}
+
+/* action "setNext": replace a person's ordered "next up" queue with body.next
+   (an array of masechta names). No sheet lock — a single property set. */
+function handleSetNext_(body) {
+  var person = body.person;
+  if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
+
+  var list = Array.isArray(body.next) ? body.next.filter(function (m) { return m; }).map(String) : [];
+  var props = PropertiesService.getScriptProperties();
+  var key = person === "eman" ? "NEXT_EMAN" : "NEXT_YEHUDA";
+  if (list.length) props.setProperty(key, JSON.stringify(list)); else props.deleteProperty(key);
+
+  return json_({ ok: true, next: getNextMasechtos_() });
 }
 
 /* action "setCurrent": pin (or clear, if masechta is empty) the masechta a
