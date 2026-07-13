@@ -5,8 +5,33 @@ const D_HE_DOW = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 const dAgoISO = n => { const d = new Date(D_TODAY); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const dpct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
+/* inline "set completion date" control for a masechta (backdate a whole masechta) */
+function DateSetControl({ S, onApply }) {
+  const [open, setOpen] = React.useState(false);
+  const [d, setD] = React.useState("");
+  const todayISO = new Date(); todayISO.setHours(0, 0, 0, 0);
+  const maxISO = todayISO.toISOString().slice(0, 10);
+  if (!open) {
+    return (
+      <button className="datebtn" title={S.setDate} onClick={() => setOpen(true)}>
+        <window.DIcon d={window.DP.cal} w={16} s={2.2} />
+      </button>
+    );
+  }
+  return (
+    <span className="datectl">
+      <input type="date" max={maxISO} value={d} onChange={e => setD(e.target.value)} />
+      <button className="dateapply" disabled={!d} title={S.applyDate}
+        onClick={() => { if (d) { onApply(d); setOpen(false); setD(""); } }}>
+        <window.DIcon d={window.DP.check} w={15} s={2.6} />
+      </button>
+      <button className="datecancel" onClick={() => { setOpen(false); setD(""); }}>✕</button>
+    </span>
+  );
+}
+
 /* ================================ SEARCH ================================ */
-function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent, onNextToggle }) {
+function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent, onNextToggle, onMasechtaDate }) {
   const sederName = window.sederName, masName = window.masName;
   const q = search.trim().toLowerCase();
   const SEDER_ORDER = window.SEDER_ORDER;
@@ -24,7 +49,10 @@ function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSear
         : m.perakim.filter(p => (status === "done" ? p[person + "_done"] : !p[person + "_done"]));
       if (peraks.length === 0) return;
       const done = m.perakim.filter(p => p[person + "_done"]).length;
-      cards.push({ seder: g.seder, col, masechta: m.masechta, total: m.perakim.length, done, peraks });
+      // completion date shown when the whole masechta is done: the latest dated perek
+      const dates = m.perakim.filter(p => p[person + "_done"] && p[person + "_date"]).map(p => p[person + "_date"]);
+      const doneDate = (done === m.perakim.length && dates.length) ? dates.sort().slice(-1)[0] : null;
+      cards.push({ seder: g.seder, col, masechta: m.masechta, total: m.perakim.length, done, doneDate, peraks });
     });
   });
 
@@ -66,12 +94,14 @@ function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSear
                 onClick={() => onNextToggle(c.masechta)}>
                 <window.DIcon d={isNext ? window.DP.check : window.DP.nextUp} w={16} s={2.4} />
               </button>
+              <DateSetControl S={S} onApply={d => onMasechtaDate(c.masechta, d)} />
               <button className="mread" style={{ color: c.col.d }} title={S.read}
                 onClick={() => onRead(c.peraks[0])}>
                 <window.DIcon d={window.DP.book} w={17} s={2.4} />
               </button>
               <span className="ct">{c.done}/{c.total}</span>
             </div>
+            {c.doneDate && <div className="mdone">{S.completedOn(c.doneDate)}</div>}
             <div className="mtiles">
               {c.peraks.map(p => {
                 const done = p[person + "_done"];

@@ -103,6 +103,9 @@ const STR = {
     siyumMonths: n => n + " month" + (n === 1 ? "" : "s"),
     siyumNeedPace: "Enter a weekly pace above.", siyumNeedDate: "Pick a target date above.",
     siyumPastDate: "Pick a date in the future.",
+    setDate: "Set completion date", applyDate: "Mark done on this date",
+    dateSaving: "Saving dates…", dateSet: (m, d) => m + " marked done · " + d,
+    completedOn: d => "done " + d,
     read: "Read", perekWord: "Perek", mishnahWord: "Mishnah",
     readerLoading: "Loading from Sefaria…", readerErr: "Couldn't load the text — check the connection",
     readerRetry: "Try again", openSefaria: "Open on Sefaria",
@@ -157,6 +160,9 @@ const STR = {
     siyumMonths: n => n + " חודשים",
     siyumNeedPace: "הזן קצב שבועי למעלה.", siyumNeedDate: "בחר תאריך יעד למעלה.",
     siyumPastDate: "בחר תאריך עתידי.",
+    setDate: "קבע תאריך סיום", applyDate: "סמן כנלמד בתאריך זה",
+    dateSaving: "שומר תאריכים…", dateSet: (m, d) => m + " סומנה כנלמדה · " + d,
+    completedOn: d => "נלמד " + d,
     read: "לימוד", perekWord: "פרק", mishnahWord: "משנה",
     readerLoading: "טוען מספריא…", readerErr: "הטעינה נכשלה — בדוק את החיבור",
     readerRetry: "נסה שוב", openSefaria: "פתח בספריא",
@@ -362,6 +368,51 @@ function useShasApp() {
     setAuthOpen(true);
   }, [person, data, performSetNext]);
 
+  // ---------- completion dates: mark a whole masechta done on a chosen date ----------
+  // Reuses the existing per-perek toggle write (which already stores a date), so
+  // no backend change is needed. Sends one write per perek in the masechta.
+  const performMasechtaDate = useCallback((masechta, date, password) => {
+    const who = person;
+    const targets = data.perakim.filter(p => p.masechta === masechta);
+    if (!targets.length) return;
+    const prev = new Map(targets.map(p => [p.perek_id, { done: p[who + "_done"], date: p[who + "_date"] }]));
+    const applyLocal = (pid, done, dt) => setData(d => ({ ...d,
+      perakim: d.perakim.map(p => p.perek_id === pid ? { ...p, [who + "_done"]: done, [who + "_date"]: dt } : p) }));
+    // optimistic: all done on this date
+    targets.forEach(p => applyLocal(p.perek_id, true, date));
+    showToast(S.dateSaving);
+
+    (async () => {
+      let badPw = false, failed = false;
+      for (const p of targets) {
+        try {
+          const res = await apiPost({ perek_id: p.perek_id, person: who, done: true, date, password });
+          if (res && res.ok) continue;
+          if (res && res.error === "bad password") { badPw = true; break; }
+          failed = true;
+        } catch (e) { failed = true; }
+      }
+      if (badPw) {
+        targets.forEach(p => { const pr = prev.get(p.perek_id); applyLocal(p.perek_id, pr.done, pr.date); });
+        localStorage.removeItem(WRITE_KEY_STORAGE);
+        pendingRef.current = { kind: "masechtaDate", masechta, date };
+        setAuthError(S.authWrong); setAuthOpen(true);
+        return;
+      }
+      localStorage.setItem(WRITE_KEY_STORAGE, password);
+      showToast(failed ? S.saveErr : S.dateSet(masName(masechta, lang), date));
+    })();
+  }, [person, data, S, lang, showToast]);
+
+  const requestMasechtaDate = useCallback((masechta, date) => {
+    if (!masechta || !date) return;
+    const key = getWriteKey();
+    if (key) { performMasechtaDate(masechta, date, key); return; }
+    pendingRef.current = { kind: "masechtaDate", masechta, date };
+    setAuthError("");
+    setAuthOpen(true);
+  }, [performMasechtaDate]);
+
   const submitWriteKey = useCallback((password) => {
     const action = pendingRef.current;
     setAuthOpen(false);
@@ -369,7 +420,8 @@ function useShasApp() {
     if (action.kind === "toggle") performToggle(action.p, password);
     else if (action.kind === "setCurrent") performSetCurrent(action.masechta, password);
     else if (action.kind === "setNext") performSetNext(action.nextList, action.addedName, password);
-  }, [performToggle, performSetCurrent, performSetNext]);
+    else if (action.kind === "masechtaDate") performMasechtaDate(action.masechta, action.date, password);
+  }, [performToggle, performSetCurrent, performSetNext, performMasechtaDate]);
 
   const closeAuthGate = useCallback(() => {
     setAuthOpen(false);
@@ -414,7 +466,7 @@ function useShasApp() {
     collapsedSed, collapsedMas, toggleSeder, toggleMasechta, collapseAllSed, expandAllSed,
     groups, total, emanTot, yehudaTot, personTotal,
     onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle,
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle, requestMasechtaDate,
     readerPerek, openReader, closeReader, readerNav,
   };
 }

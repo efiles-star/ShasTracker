@@ -25,6 +25,7 @@ const DP = {
   collapseAll: "M7 13l5-5 5 5M7 19l5-5 5 5", // double chevron up
   expandAll:   "M7 5l5 5 5-5M7 11l5 5 5-5",   // double chevron down
   nextUp:  "M4 6h10M4 12h10M4 18h7M17 15l3 3 3-3M20 18V9", // list + down-arrow (queue)
+  cal:     "M5 5h14v14H5zM5 9h14M8 3v4M16 3v4", // calendar
 };
 
 /* emoji — one per Seder, one per Masechta (keyed by the English name in shas.js) */
