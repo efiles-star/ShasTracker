@@ -153,7 +153,139 @@ function LineChart({ perakim, fromISO, lang }) {
   );
 }
 
-function StatsView({ S, lang, data, range, setRange, groups, total }) {
+/* ---- Siyum calculator: project a finish date / required pace, in mishnayot ---- */
+const MISHNAYOT_TOTAL = 4192, PERAKIM_TOTAL = 525;
+const AVG_MISHNAYOT_PER_PEREK = MISHNAYOT_TOTAL / PERAKIM_TOTAL; // ~7.985
+
+// remaining mishnayot for a person = sum over not-done perakim of that perek's
+// mishnah count (from Sefaria shapes); any perek without an exact count falls
+// back to the Shas average, and flags the whole total as an estimate.
+function remainingMishnayot(perakim, person, shapes) {
+  let rem = 0, exact = true;
+  for (const p of perakim) {
+    if (p[person + "_done"]) continue;
+    const ch = shapes && shapes[p.masechta];
+    const n = ch && ch[p.perek_num - 1];
+    if (typeof n === "number" && n > 0) rem += n;
+    else { rem += AVG_MISHNAYOT_PER_PEREK; exact = false; }
+  }
+  return { rem: Math.round(rem), exact };
+}
+
+function SiyumCalc({ S, lang, data, person }) {
+  const [mode, setMode] = React.useState("date");     // "date" = when's the siyum, "pace" = required pace
+  const [perWeek, setPerWeek] = React.useState("");
+  const [target, setTarget] = React.useState("");
+  const [shapes, setShapes] = React.useState(null);
+  const [status, setStatus] = React.useState("loading"); // loading | exact | est
+  const loc = lang === "he" ? "he" : "en";
+
+  // fetch mishnayot-per-perek shapes from Sefaria once (cached), for every masechta present
+  React.useEffect(() => {
+    let alive = true;
+    const names = Array.from(new Set(data.perakim.map(p => p.masechta)));
+    window.fetchAllShapes(names)
+      .then(map => { if (alive) { setShapes(map); setStatus("exact"); } })
+      .catch(() => { if (alive) { setShapes(null); setStatus("est"); } });
+    return () => { alive = false; };
+  }, [data]);
+
+  const { rem, exact } = remainingMishnayot(data.perakim, person, shapes);
+  const isEstimate = status === "est" || !exact;
+  const who = person === "eman" ? S.abba : S.yehuda;
+
+  // date math (no time zone surprises: work in whole days from local midnight)
+  const MS_DAY = 86400000;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const fmtDate = d => d.toLocaleDateString(loc, { year: "numeric", month: "short", day: "numeric" });
+
+  let result = null;
+  if (rem <= 0) {
+    result = { kind: "done" };
+  } else if (mode === "date") {
+    const w = Math.floor(Number(perWeek));
+    if (w > 0) {
+      const weeks = Math.ceil(rem / w);
+      const d = new Date(today.getTime() + weeks * 7 * MS_DAY);
+      const months = Math.round(weeks / 4.345);
+      result = { kind: "date", date: fmtDate(d), weeks, months };
+    } else {
+      result = { kind: "needPace" };
+    }
+  } else {
+    if (target) {
+      const td = new Date(target + "T00:00:00"); td.setHours(0, 0, 0, 0);
+      const days = Math.round((td.getTime() - today.getTime()) / MS_DAY);
+      if (days <= 0) result = { kind: "past" };
+      else {
+        const weeks = Math.max(1, days / 7);
+        const pw = Math.ceil(rem / weeks);
+        const perDay = Math.max(1, Math.ceil(rem / days));
+        result = { kind: "pace", perWeek: pw, perDay };
+      }
+    } else {
+      result = { kind: "needDate" };
+    }
+  }
+
+  const todayISO = today.toISOString().slice(0, 10);
+
+  return (
+    <div className="scard siyum">
+      <div className="ch"><span className="t">{S.siyumTitle}</span></div>
+      <div className="cs">{S.siyumSub(who)}</div>
+
+      <div className="siyum-rem">
+        {status === "loading"
+          ? <span className="loadingdots">{S.siyumLoading}</span>
+          : (isEstimate ? S.siyumRemainingEst(rem) : S.siyumRemaining(rem))}
+      </div>
+
+      <div className="siyum-modes">
+        {[["date", S.siyumModeDate], ["pace", S.siyumModePace]].map(([k, l]) => (
+          <button key={k} className={mode === k ? "on" : ""} onClick={() => setMode(k)}>{l}</button>
+        ))}
+      </div>
+
+      {mode === "date" ? (
+        <label className="siyum-field">
+          <span className="fl">{S.siyumPaceLabel}</span>
+          <input type="number" min="1" inputMode="numeric" value={perWeek}
+            onChange={e => setPerWeek(e.target.value)} placeholder="—" />
+        </label>
+      ) : (
+        <label className="siyum-field">
+          <span className="fl">{S.siyumDateLabel}</span>
+          <input type="date" min={todayISO} value={target} onChange={e => setTarget(e.target.value)} />
+        </label>
+      )}
+
+      <div className="siyum-out">
+        {result.kind === "done" && <div className="big">{S.siyumDone}</div>}
+        {result.kind === "needPace" && <div className="hint">{S.siyumNeedPace}</div>}
+        {result.kind === "needDate" && <div className="hint">{S.siyumNeedDate}</div>}
+        {result.kind === "past" && <div className="hint">{S.siyumPastDate}</div>}
+        {result.kind === "date" && (
+          <>
+            <div className="l">{S.siyumResultDate}</div>
+            <div className="v">{result.date}</div>
+            <div className="s">{S.siyumResultWeeks(result.weeks, result.months ? S.siyumMonths(result.months) : "")}</div>
+          </>
+        )}
+        {result.kind === "pace" && (
+          <>
+            <div className="l">{S.siyumResultPace(result.perWeek)}</div>
+            <div className="s">{S.siyumResultPaceSub(result.perDay)}</div>
+          </>
+        )}
+      </div>
+
+      {isEstimate && status !== "loading" && <div className="siyum-note">{S.siyumEstNote}</div>}
+    </div>
+  );
+}
+
+function StatsView({ S, lang, data, range, setRange, groups, total, person }) {
   const sederName = window.sederName;
   const perakim = data.perakim;
   const fromISO = range === "all" ? null : dAgoISO(range === 30 ? 30 : 90);
@@ -227,6 +359,8 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
           ))}
         </div>
       </div>
+
+      <SiyumCalc S={S} lang={lang} data={data} person={person} />
     </div>
   );
 }
@@ -338,4 +472,4 @@ function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent
   );
 }
 
-Object.assign(window, { SearchView, StatsView, NowLearningView });
+Object.assign(window, { SearchView, StatsView, NowLearningView, SiyumCalc, remainingMishnayot });
