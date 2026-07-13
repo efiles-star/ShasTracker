@@ -223,6 +223,22 @@ body:has(.duoweb[data-skin="eman"]) { background: #efeadd; }
 .duoweb[data-skin="eman"] .cele-btn { background: var(--acc); color: var(--on-acc); font-family: var(--fmono); font-weight: 700; font-size: 13px; letter-spacing: .08em; }
 .duoweb[data-skin="eman"] .confetti i { background: var(--acc) !important; }
 
+/* Siyum calculator */
+.duoweb[data-skin="eman"] .siyum .siyum-rem { font-weight: 700; letter-spacing: -.01em; }
+.duoweb[data-skin="eman"] .siyum .siyum-rem .loadingdots { font-family: var(--fmono); font-weight: 400; font-size: 12px; letter-spacing: .04em; }
+.duoweb[data-skin="eman"] .siyum-modes button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .siyum-modes button.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.duoweb[data-skin="eman"] .siyum-field .fl { font-weight: 500; }
+.duoweb[data-skin="eman"] .siyum-field input { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.duoweb[data-skin="eman"] .siyum-out { border-top: 2px solid var(--line); }
+.duoweb[data-skin="eman"] .siyum-out .l { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .siyum-out .l::before { content: "// "; }
+.duoweb[data-skin="eman"] .siyum-out .v { font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.duoweb[data-skin="eman"] .siyum-out .s { font-family: var(--fmono); font-weight: 400; font-size: 11px; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .siyum-out .big { color: var(--ink); font-weight: 700; }
+.duoweb[data-skin="eman"] .siyum-out .hint { font-family: var(--fmono); font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .siyum-note { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; letter-spacing: .02em; }
+
 /* ========================= DARK MODE (warm charcoal) ========================= */
 @media (prefers-color-scheme: dark) {
   html:has(.duoweb[data-skin="eman"]),
