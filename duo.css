@@ -502,6 +502,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .collapsebtn:active { transform: translateY(1px); }
 
+/* ============================== COMPLETION DATE (set + display) ============================== */
+.datebtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); transition: background .12s, color .12s; flex: 0 0 auto; }
+.datebtn:hover { background: #f0f0f0; }
+.datectl { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.datectl input[type="date"] { height: 30px; border: 2px solid var(--line); border-radius: 9px; padding: 0 8px; font: inherit; font-weight: 700; font-size: 12px; color: var(--ink); background: #fff; outline: none; }
+.datectl input[type="date"]:focus { border-color: var(--acc); }
+.datectl .dateapply { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: var(--acc); color: #fff; box-shadow: 0 2px 0 var(--acc-d); }
+.datectl .dateapply:disabled { opacity: .4; box-shadow: none; }
+.datectl .datecancel { width: 26px; height: 30px; border-radius: 8px; color: var(--ink-3); font-weight: 900; font-size: 13px; }
+.mcard .mdone { font-weight: 800; font-size: 11px; color: var(--acc-d); margin: -4px 0 10px; }
+
 /* ============================== NEXT UP (button + queue) ============================== */
 .nextbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); transition: background .12s, color .12s; flex: 0 0 auto; }
 .nextbtn:hover { background: #f0f0f0; }

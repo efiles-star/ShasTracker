@@ -7,7 +7,7 @@ function WebApp() {
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     collapseAllSed, expandAllSed,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
-    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle,
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle, requestMasechtaDate,
     readerPerek, openReader, closeReader, readerNav } = A;
   const pct = window.pct;
 
@@ -79,7 +79,7 @@ function WebApp() {
           {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} person={person} />}
           {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader}
             search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter}
-            data={data} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} />}
+            data={data} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} onMasechtaDate={requestMasechtaDate} />}
           {view === "now" && <window.NowLearningView S={S} lang={lang} groups={groups} data={data} person={person} onToggle={onToggle} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} onRead={openReader} />}
         </div>
       </main>
