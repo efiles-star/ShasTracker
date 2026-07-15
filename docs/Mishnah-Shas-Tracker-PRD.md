@@ -80,7 +80,7 @@ One row per perek, **525 rows**. Columns:
 
 - **No login, no user table.** Two fixed people = two fixed column pairs.
 - `perek_id` is the write key — `doPost` targets `(perek_id, person)`.
-- Perek counts are **undisputed** at chapter level (6 Sedarim / 63 masechtos / 525 perakim), so the dataset is objectively correct with no counting-method choice to make.
+- Perek counts are **undisputed** at chapter level (6 Sedarim / 63 masechtot / 525 perakim), so the dataset is objectively correct with no counting-method choice to make.
 
 ## State / sync behavior
 - On load: single `doGet`, hydrate the whole board.
@@ -104,8 +104,8 @@ The app is **two views inside one hosted page**, switched by a top-level toggle.
    - View toggle: **Map | Analytics**.
 2. **Filter bar** (see filters section).
 3. **The mosaic** — the hero element.
-   - **6 Seder sections**, each a labeled block: Zeraim, Moed, Nashim, Nezikin, Kodashim, Taharos.
-   - Within each Seder, **masechtos as labeled sub-clusters**.
+   - **6 Seder sections**, each a labeled block: Zeraim, Moed, Nashim, Nezikin, Kodashim, Taharot.
+   - Within each Seder, **masechtot as labeled sub-clusters**.
    - Within each masechta, **one small tile per perek**.
    - **525 tiles total**, all part of one continuous picture.
    - Empty tile = not learned. Filled tile = learned.
@@ -115,7 +115,7 @@ The app is **two views inside one hosted page**, switched by a top-level toggle.
 - **Fallback if 525 split-tiles read as too busy — Person toggle:** Eman / Yehuda / Both-overlay. (Decision deferred to first render — see parking lot.)
 
 **Density handling (the key UX safeguard):**
-- **Collapsible Seder blocks.** Tap a Seder to expand its masechtos to full, tappable size; other Sedarim collapse to a compact summary.
+- **Collapsible Seder blocks.** Tap a Seder to expand its masechtot to full, tappable size; other Sedarim collapse to a compact summary.
 - This keeps the overview clean and makes individual perek tap targets large enough on a phone. The app never tries to render all 525 tiles full-size and tappable at once on mobile.
 
 **Interaction:**
@@ -153,7 +153,7 @@ All filters live on the **Map** view filter bar. Kept deliberately minimal.
 ---
 
 ## Plan — smallest version first
-1. **Build the data.** Generate the 525-row Sheet (seder / masechta / perek_num / perek_id + the four person columns). **Seed** with Eman's completed masechtos: Pesachim, Sukkah, Avos, Sanhedrin, Makkos.
+1. **Build the data.** Generate the 525-row Sheet (seder / masechta / perek_num / perek_id + the four person columns). **Seed** with Eman's completed masechtot: Pesachim, Sukkah, Avot, Sanhedrin, Makkot.
 2. **Stand up the Apps Script web app** — clone the Shabbat pattern: `doGet` → JSON, `doPost` → mark `(perek_id, person)` + date.
 3. **Build the read-only Map first.** Verify all 525 perakim render correctly, grouped right, from live data — before adding any writes.
 4. **Add tap-to-mark** (`doPost`) with optimistic UI + failure revert. Confirm persistence.
@@ -177,7 +177,7 @@ Steps 1–3 are the proof. If the Map renders Shas correctly from live data, the
 
 ## Future ideas (v2+)
 - Per-mishnah drill-down inside a perek (tap a perek → see its mishnayot).
-- Conversational write-back via Zapier MCP ("Claude, mark Makkos done") — its correct use.
+- Conversational write-back via Zapier MCP ("Claude, mark Makkot done") — its correct use.
 - Streaks, weekly pace goals, daily learning reminder (Telegram, matching existing tooling).
 - Open to the shiur (requires revisiting the last-write-wins limit and the public-write exposure).
 

@@ -2,26 +2,31 @@
 
 function WebApp() {
   const A = window.useShasApp();
-  const { tw, setTweak, lang, S, rtl, switchLang, data, view, setPersistView, person, setPersistPerson,
+  const { tw, setTweak, lang, S, rtl, switchLang, skin, switchSkin, data, view, setPersistView, person, setPersistPerson,
     range, setRange, search, setSearch, status, setStatus, sederFilter, setSederFilter,
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
+    collapseAllSed, expandAllSed,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
     sheetPerek, closeSheet, togglePerek, toggleMishna,
-    authOpen, authError, submitWriteKey, closeAuthGate } = A;
+    authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle, requestMasechtaDate,
+    readerPerek, openReader, closeReader, readerNav } = A;
   const pct = window.pct;
 
   const shellStyle = { "--acc": acc.c, "--acc-d": acc.d };
 
   if (!data) return (
-    <div className="duoweb" style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
+    <div className="duoweb" data-skin={skin} style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
       <div className="loading">{S.loading}</div>
     </div>
   );
 
-  const viewTitle = view === "path" ? S.navPath : view === "stats" ? S.navStats : S.navSearch;
+  const viewTitle = view === "path" ? S.navPath : view === "stats" ? S.navStats : view === "search" ? S.navSearch : S.navNow;
+  const ALL_NAVS = [["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search], ["now", S.navNow, window.DP.pin]];
+  // EmanOS is a minimal skin — only Stats and Search are offered
+  const NAVS = skin === "eman" ? ALL_NAVS.filter(([k]) => k === "stats" || k === "search") : ALL_NAVS;
 
   return (
-    <div className="duoweb" style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
+    <div className="duoweb" data-skin={skin} style={shellStyle} dir={rtl ? "rtl" : "ltr"}>
       <aside className="websidebar">
         <div className="brand">
           <div className="mark"><window.DIcon d={window.DP.book} w={24} s={2.2} /></div>
@@ -29,7 +34,7 @@ function WebApp() {
         </div>
 
         <nav className="webnav">
-          {[["path", S.navPath, window.DP.flag], ["stats", S.navStats, window.DP.chart], ["search", S.navSearch, window.DP.search]].map(([k, label, ic]) => (
+          {NAVS.map(([k, label, ic]) => (
             <button key={k} className={"webnavbtn" + (view === k ? " on" : "")} onClick={() => setPersistView(k)}>
               <span className="ic"><window.DIcon d={ic} w={24} s={2.3} /></span><span>{label}</span>
             </button>
@@ -49,13 +54,34 @@ function WebApp() {
       <main className="webcenter">
         <div className="webcenterhead">
           <h1>{viewTitle}</h1>
+          {/* compact person + language controls — the sidebar/rail are hidden on mobile */}
+          <div className="mobilectl">
+            {[["eman", "A", "א"], ["yehuda", "Y", "י"]].map(([k, en, he]) => (
+              <button key={k} className={"mpbtn" + (person === k ? " on" : "")}
+                style={{ background: PCOL[k].c, "--pc": PCOL[k].c }}
+                onClick={() => setPersistPerson(k)} aria-label={k === "eman" ? S.abba : S.yehuda}>
+                {lang === "he" ? he : en}
+              </button>
+            ))}
+            <span className="flagtoggle">
+              <button className={lang === "en" ? "on" : ""} onClick={() => switchLang("en")}>EN</button>
+              <button className={lang === "he" ? "on" : ""} onClick={() => switchLang("he")}>עב</button>
+            </span>
+            <span className="flagtoggle">
+              <button className={skin === "duo" ? "on" : ""} onClick={() => switchSkin("duo")} title="Duolingo theme" aria-label="Duolingo theme">D</button>
+              <button className={skin === "eman" ? "on" : ""} onClick={() => switchSkin("eman")} title="EmanOS theme" aria-label="EmanOS theme">E</button>
+            </span>
+          </div>
         </div>
         <div className="webscroll">
-          {view === "path" && <window.PathView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} chestTap={chestTap} nums={tw.nodeNumbers}
-            collapsedSed={collapsedSed} collapsedMas={collapsedMas} toggleSeder={toggleSeder} toggleMasechta={toggleMasechta} />}
-          {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} />}
-          {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle}
-            search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter} />}
+          {view === "path" && <window.PathView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader} chestTap={chestTap} nums={tw.nodeNumbers}
+            collapsedSed={collapsedSed} collapsedMas={collapsedMas} toggleSeder={toggleSeder} toggleMasechta={toggleMasechta}
+            collapseAllSed={collapseAllSed} expandAllSed={expandAllSed} />}
+          {view === "stats" && <window.StatsView S={S} lang={lang} data={data} range={range} setRange={setRange} groups={groups} total={total} person={person} />}
+          {view === "search" && <window.SearchView S={S} lang={lang} groups={groups} person={person} onToggle={onToggle} onRead={openReader}
+            search={search} setSearch={setSearch} status={status} setStatus={setStatus} sederFilter={sederFilter} setSederFilter={setSederFilter}
+            data={data} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} onMasechtaDate={requestMasechtaDate} />}
+          {view === "now" && <window.NowLearningView S={S} lang={lang} groups={groups} data={data} person={person} onToggle={onToggle} onSetCurrent={requestSetCurrent} onNextToggle={requestNextToggle} onRead={openReader} />}
         </div>
       </main>
 
@@ -89,10 +115,30 @@ function WebApp() {
             <button className={lang === "he" ? "on" : ""} onClick={() => switchLang("he")}>עברית</button>
           </div>
         </div>
+
+        <div className="railcard">
+          <div className="rh">{S.theme}</div>
+          <div className="raillang">
+            <button className={skin === "duo" ? "on" : ""} onClick={() => switchSkin("duo")}>Duolingo</button>
+            <button className={skin === "eman" ? "on" : ""} onClick={() => switchSkin("eman")}>EmanOS</button>
+          </div>
+        </div>
       </aside>
+
+      <nav className="webmobilenav">
+        {NAVS.map(([k, label, ic]) => (
+          <button key={k} className={"wmnbtn" + (view === k ? " on" : "")} onClick={() => setPersistView(k)}>
+            <span className="ic"><window.DIcon d={ic} w={22} s={2.3} /></span>
+            <span className="lb">{label}</span>
+          </button>
+        ))}
+      </nav>
 
       <window.MishnaSheet p={sheetPerek} person={person} S={S} lang={lang} onClose={closeSheet}
         onToggleMishna={toggleMishna} onTogglePerek={p => { togglePerek(p); closeSheet(); }} />
+      {/* the reader's "Mark learned" stays a whole-perek action */}
+      <window.ReaderModal S={S} lang={lang} rtl={rtl} reader={readerPerek} person={person}
+        onClose={closeReader} onNav={readerNav} onToggle={togglePerek} />
       <window.Celebration cele={cele} onClose={() => setCele(null)} />
       <window.AuthGate open={authOpen} error={authError} onSubmit={submitWriteKey} onCancel={closeAuthGate} S={S} />
       <div className={"toast" + (toast ? " show" : "")}>{toast}</div>

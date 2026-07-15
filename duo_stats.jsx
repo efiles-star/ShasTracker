@@ -5,24 +5,54 @@ const D_HE_DOW = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 const dAgoISO = n => { const d = new Date(D_TODAY); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const dpct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
+/* inline "set completion date" control for a masechta (backdate a whole masechta) */
+function DateSetControl({ S, onApply }) {
+  const [open, setOpen] = React.useState(false);
+  const [d, setD] = React.useState("");
+  const todayISO = new Date(); todayISO.setHours(0, 0, 0, 0);
+  const maxISO = todayISO.toISOString().slice(0, 10);
+  if (!open) {
+    return (
+      <button className="datebtn" title={S.setDate} onClick={() => setOpen(true)}>
+        <window.DIcon d={window.DP.cal} w={16} s={2.2} />
+      </button>
+    );
+  }
+  return (
+    <span className="datectl">
+      <input type="date" max={maxISO} value={d} onChange={e => setD(e.target.value)} />
+      <button className="dateapply" disabled={!d} title={S.applyDate}
+        onClick={() => { if (d) { onApply(d); setOpen(false); setD(""); } }}>
+        <window.DIcon d={window.DP.check} w={15} s={2.6} />
+      </button>
+      <button className="datecancel" onClick={() => { setOpen(false); setD(""); }}>✕</button>
+    </span>
+  );
+}
+
 /* ================================ SEARCH ================================ */
-function SearchView({ S, lang, groups, person, onToggle, search, setSearch, status, setStatus, sederFilter, setSederFilter }) {
+function SearchView({ S, lang, groups, person, onToggle, onRead, search, setSearch, status, setStatus, sederFilter, setSederFilter, data, onSetCurrent, onNextToggle, onMasechtaDate }) {
   const sederName = window.sederName, masName = window.masName;
   const q = search.trim().toLowerCase();
   const SEDER_ORDER = window.SEDER_ORDER;
+  const currentMasechta = data.current ? data.current[person] : null;
+  const nextList = (data.next && data.next[person]) || [];
 
   const cards = [];
   groups.forEach((g, si) => {
     if (sederFilter !== "all" && sederFilter !== g.seder) return;
     const col = window.sederColor(si);
-    g.masechtos.forEach(m => {
+    g.masechtot.forEach(m => {
       const hit = !q || m.masechta.toLowerCase().includes(q) || (window.MAS_HE[m.masechta] || "").includes(search.trim());
       if (!hit) return;
       const peraks = status === "all" ? m.perakim
         : m.perakim.filter(p => (status === "done" ? p[person + "_done"] : !p[person + "_done"]));
       if (peraks.length === 0) return;
       const done = m.perakim.filter(p => p[person + "_done"]).length;
-      cards.push({ seder: g.seder, col, masechta: m.masechta, total: m.perakim.length, done, peraks });
+      // completion date shown when the whole masechta is done: the latest dated perek
+      const dates = m.perakim.filter(p => p[person + "_done"] && p[person + "_date"]).map(p => p[person + "_date"]);
+      const doneDate = (done === m.perakim.length && dates.length) ? dates.sort().slice(-1)[0] : null;
+      cards.push({ seder: g.seder, col, masechta: m.masechta, total: m.perakim.length, done, doneDate, peraks });
     });
   });
 
@@ -46,13 +76,32 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
 
       {cards.length === 0
         ? <div className="searchhint">{status === "remaining" ? S.allDoneHint : status === "done" ? S.noneDone : S.noHits}</div>
-        : cards.map(c => (
+        : cards.map(c => {
+          const isPinned = currentMasechta === c.masechta;
+          const isNext = nextList.includes(c.masechta);
+          return (
           <div className="mcard" key={c.seder + c.masechta}>
             <div className="mh">
               <span className="dot" style={{ background: c.col.c }} />
               <span className="nm">{masName(c.masechta, lang)}</span>
+              <button className={"pinbtn" + (isPinned ? " on" : "")}
+                title={isPinned ? S.unpinCurrent : S.setCurrent}
+                onClick={() => onSetCurrent(isPinned ? null : c.masechta)}>
+                <window.DIcon d={window.DP.pin} w={16} s={2.2} fill={isPinned} />
+              </button>
+              <button className={"nextbtn" + (isNext ? " on" : "")}
+                title={isNext ? S.removeNext : S.addNext}
+                onClick={() => onNextToggle(c.masechta)}>
+                <window.DIcon d={isNext ? window.DP.check : window.DP.nextUp} w={16} s={2.4} />
+              </button>
+              <DateSetControl S={S} onApply={d => onMasechtaDate(c.masechta, d)} />
+              <button className="mread" style={{ color: c.col.d }} title={S.read}
+                onClick={() => onRead(c.peraks[0])}>
+                <window.DIcon d={window.DP.book} w={17} s={2.4} />
+              </button>
               <span className="ct">{c.done}/{c.total}</span>
             </div>
+            {c.doneDate && <div className="mdone">{S.completedOn(c.doneDate)}</div>}
             <div className="mtiles">
               {c.peraks.map(p => {
                 const done = p[person + "_done"];
@@ -64,7 +113,8 @@ function SearchView({ S, lang, groups, person, onToggle, search, setSearch, stat
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
     </div>
   );
 }
@@ -133,7 +183,139 @@ function LineChart({ perakim, fromISO, lang }) {
   );
 }
 
-function StatsView({ S, lang, data, range, setRange, groups, total }) {
+/* ---- Siyum calculator: project a finish date / required pace, in mishnayot ---- */
+const MISHNAYOT_TOTAL = 4192, PERAKIM_TOTAL = 525;
+const AVG_MISHNAYOT_PER_PEREK = MISHNAYOT_TOTAL / PERAKIM_TOTAL; // ~7.985
+
+// remaining mishnayot for a person = sum over not-done perakim of that perek's
+// mishnah count (from Sefaria shapes); any perek without an exact count falls
+// back to the Shas average, and flags the whole total as an estimate.
+function remainingMishnayot(perakim, person, shapes) {
+  let rem = 0, exact = true;
+  for (const p of perakim) {
+    if (p[person + "_done"]) continue;
+    const ch = shapes && shapes[p.masechta];
+    const n = ch && ch[p.perek_num - 1];
+    if (typeof n === "number" && n > 0) rem += n;
+    else { rem += AVG_MISHNAYOT_PER_PEREK; exact = false; }
+  }
+  return { rem: Math.round(rem), exact };
+}
+
+function SiyumCalc({ S, lang, data, person }) {
+  const [mode, setMode] = React.useState("date");     // "date" = when's the siyum, "pace" = required pace
+  const [perWeek, setPerWeek] = React.useState("");
+  const [target, setTarget] = React.useState("");
+  const [shapes, setShapes] = React.useState(null);
+  const [status, setStatus] = React.useState("loading"); // loading | exact | est
+  const loc = lang === "he" ? "he" : "en";
+
+  // fetch mishnayot-per-perek shapes from Sefaria once (cached), for every masechta present
+  React.useEffect(() => {
+    let alive = true;
+    const names = Array.from(new Set(data.perakim.map(p => p.masechta)));
+    window.fetchAllShapes(names)
+      .then(map => { if (alive) { setShapes(map); setStatus("exact"); } })
+      .catch(() => { if (alive) { setShapes(null); setStatus("est"); } });
+    return () => { alive = false; };
+  }, [data]);
+
+  const { rem, exact } = remainingMishnayot(data.perakim, person, shapes);
+  const isEstimate = status === "est" || !exact;
+  const who = person === "eman" ? S.abba : S.yehuda;
+
+  // date math (no time zone surprises: work in whole days from local midnight)
+  const MS_DAY = 86400000;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const fmtDate = d => d.toLocaleDateString(loc, { year: "numeric", month: "short", day: "numeric" });
+
+  let result = null;
+  if (rem <= 0) {
+    result = { kind: "done" };
+  } else if (mode === "date") {
+    const w = Math.floor(Number(perWeek));
+    if (w > 0) {
+      const weeks = Math.ceil(rem / w);
+      const d = new Date(today.getTime() + weeks * 7 * MS_DAY);
+      const months = Math.round(weeks / 4.345);
+      result = { kind: "date", date: fmtDate(d), weeks, months };
+    } else {
+      result = { kind: "needPace" };
+    }
+  } else {
+    if (target) {
+      const td = new Date(target + "T00:00:00"); td.setHours(0, 0, 0, 0);
+      const days = Math.round((td.getTime() - today.getTime()) / MS_DAY);
+      if (days <= 0) result = { kind: "past" };
+      else {
+        const weeks = Math.max(1, days / 7);
+        const pw = Math.ceil(rem / weeks);
+        const perDay = Math.max(1, Math.ceil(rem / days));
+        result = { kind: "pace", perWeek: pw, perDay };
+      }
+    } else {
+      result = { kind: "needDate" };
+    }
+  }
+
+  const todayISO = today.toISOString().slice(0, 10);
+
+  return (
+    <div className="scard siyum">
+      <div className="ch"><span className="t">{S.siyumTitle}</span></div>
+      <div className="cs">{S.siyumSub(who)}</div>
+
+      <div className="siyum-rem">
+        {status === "loading"
+          ? <span className="loadingdots">{S.siyumLoading}</span>
+          : (isEstimate ? S.siyumRemainingEst(rem) : S.siyumRemaining(rem))}
+      </div>
+
+      <div className="siyum-modes">
+        {[["date", S.siyumModeDate], ["pace", S.siyumModePace]].map(([k, l]) => (
+          <button key={k} className={mode === k ? "on" : ""} onClick={() => setMode(k)}>{l}</button>
+        ))}
+      </div>
+
+      {mode === "date" ? (
+        <label className="siyum-field">
+          <span className="fl">{S.siyumPaceLabel}</span>
+          <input type="number" min="1" inputMode="numeric" value={perWeek}
+            onChange={e => setPerWeek(e.target.value)} placeholder="—" />
+        </label>
+      ) : (
+        <label className="siyum-field">
+          <span className="fl">{S.siyumDateLabel}</span>
+          <input type="date" min={todayISO} value={target} onChange={e => setTarget(e.target.value)} />
+        </label>
+      )}
+
+      <div className="siyum-out">
+        {result.kind === "done" && <div className="big">{S.siyumDone}</div>}
+        {result.kind === "needPace" && <div className="hint">{S.siyumNeedPace}</div>}
+        {result.kind === "needDate" && <div className="hint">{S.siyumNeedDate}</div>}
+        {result.kind === "past" && <div className="hint">{S.siyumPastDate}</div>}
+        {result.kind === "date" && (
+          <>
+            <div className="l">{S.siyumResultDate}</div>
+            <div className="v">{result.date}</div>
+            <div className="s">{S.siyumResultWeeks(result.weeks, result.months ? S.siyumMonths(result.months) : "")}</div>
+          </>
+        )}
+        {result.kind === "pace" && (
+          <>
+            <div className="l">{S.siyumResultPace(result.perWeek)}</div>
+            <div className="s">{S.siyumResultPaceSub(result.perDay)}</div>
+          </>
+        )}
+      </div>
+
+      {isEstimate && status !== "loading" && <div className="siyum-note">{S.siyumEstNote}</div>}
+    </div>
+  );
+}
+
+function StatsView({ S, lang, data, range, setRange, groups, total, person }) {
   const sederName = window.sederName;
   const perakim = data.perakim;
   const fromISO = range === "all" ? null : dAgoISO(range === 30 ? 30 : 90);
@@ -198,7 +380,7 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
               <div className="pacebars">
                 {arr.map((v, i) => (
                   <div className="pb" key={i}>
-                    <div className="b" style={{ height: (v / maxDay * 54) + "px", background: v ? c : "#ececec" }} />
+                    <div className="b" style={{ height: (v / maxDay * 54) + "px", background: v ? c : "var(--bar-empty, #ececec)" }} />
                     <div className="d">{days[i].lbl}</div>
                   </div>
                 ))}
@@ -207,8 +389,117 @@ function StatsView({ S, lang, data, range, setRange, groups, total }) {
           ))}
         </div>
       </div>
+
+      <SiyumCalc S={S} lang={lang} data={data} person={person} />
     </div>
   );
 }
 
-Object.assign(window, { SearchView, StatsView });
+/* ============================ NOW LEARNING ============================ */
+function NowLearningView({ S, lang, groups, data, person, onToggle, onSetCurrent, onNextToggle, onRead }) {
+  const masName = window.masName, sederName = window.sederName, PCOL = window.PCOL;
+  const DIcon = window.DIcon, DP = window.DP;
+
+  const findMasechta = name => {
+    for (const g of groups) {
+      const m = g.masechtot.find(x => x.masechta === name);
+      if (m) return { g, m };
+    }
+    return null;
+  };
+  const masCol = name => {
+    const f = findMasechta(name);
+    return f ? window.sederColor(window.SEDER_ORDER.indexOf(f.g.seder)) : null;
+  };
+
+  const people = [
+    { key: "eman", label: S.abba, initial: lang === "he" ? "א" : "A" },
+    { key: "yehuda", label: S.yehuda, initial: lang === "he" ? "י" : "Y" },
+  ];
+
+  return (
+    <div className="nowview">
+      {people.map(pp => {
+        const isActive = pp.key === person;
+        const name = data.current ? data.current[pp.key] : null;
+        const found = name ? findMasechta(name) : null;
+        const col = found ? window.sederColor(window.SEDER_ORDER.indexOf(found.g.seder)) : null;
+        const doneCount = found ? found.m.perakim.filter(p => p[pp.key + "_done"]).length : 0;
+        const Tile = isActive ? "button" : "div";
+        const nextList = (data.next && data.next[pp.key]) || [];
+
+        return (
+          <div className="nowcard" key={pp.key}>
+            <div className="nowhead">
+              <span className="av" style={{ background: PCOL[pp.key].c }}>{pp.initial}</span>
+              <span className="nm">{pp.label}</span>
+              {isActive && found && (
+                <button className="nowclear" onClick={() => onSetCurrent(null)}>{S.unpinCurrent}</button>
+              )}
+            </div>
+
+            {!found ? (
+              <div className="nowempty">{S.noCurrent} {isActive && S.noCurrentHint}</div>
+            ) : (
+              <>
+                <div className="unit" style={{ background: col.c, color: col.on }}>
+                  <span className="info">
+                    <span className="k">{window.SEDER_EMOJI[found.g.seder] || ""} {sederName(found.g.seder, lang)}</span>
+                    <span className="m">{window.MAS_EMOJI[found.m.masechta] || ""} {masName(found.m.masechta, lang)}</span>
+                  </span>
+                  <span className={"crown" + (doneCount === found.m.perakim.length ? " full" : "")}>
+                    <DIcon d={DP.crown} w={16} fill />{doneCount}/{found.m.perakim.length}
+                  </span>
+                  <button className="nowread" title={S.read} onClick={() => onRead(found.m.perakim[0])}>
+                    <DIcon d={DP.book} w={16} s={2.4} />
+                  </button>
+                </div>
+                <div className="mtiles">
+                  {found.m.perakim.map(p => {
+                    const done = p[pp.key + "_done"];
+                    return (
+                      <Tile key={p.perek_id} className={"mtile" + (done ? " done" : "")}
+                        style={done ? { background: col.c, color: col.on, boxShadow: "0 3px 0 " + col.d } : null}
+                        onClick={isActive ? () => onToggle(p) : undefined}>{p.perek_num}</Tile>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div className="nextsec">
+              <div className="nexthead">{S.nextUp}</div>
+              {nextList.length === 0 ? (
+                <div className="nextempty">{S.noNext} {isActive && S.noNextHint}</div>
+              ) : (
+                <ol className="nextlist">
+                  {nextList.map((nm, i) => {
+                    const nc = masCol(nm);
+                    const f = findMasechta(nm);
+                    const nd = f ? f.m.perakim.filter(p => p[pp.key + "_done"]).length : 0;
+                    const nt = f ? f.m.perakim.length : 0;
+                    return (
+                      <li className="nextrow" key={nm}>
+                        <span className="nnum" style={{ background: nc ? nc.c : "var(--ink-3)", color: nc ? nc.on : "#fff" }}>{i + 1}</span>
+                        <span className="nnm">{window.MAS_EMOJI[nm] || ""} {masName(nm, lang)}</span>
+                        <span className="nct">{nd}/{nt}</span>
+                        {f && <button className="nread" title={S.read} onClick={() => onRead(f.m.perakim[0])}>
+                          <DIcon d={DP.book} w={15} s={2.4} />
+                        </button>}
+                        {isActive && <button className="nremove" title={S.removeNext} onClick={() => onNextToggle(nm)}>✕</button>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+
+            {!isActive && <div className="nowhint">{S.switchToEdit(pp.label)}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { SearchView, StatsView, NowLearningView, SiyumCalc, remainingMishnayot });

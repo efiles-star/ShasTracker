@@ -17,38 +17,38 @@ import { writeFileSync } from "node:fs";
 
 // seder → [masechta, perek count]   (525 perakim total)
 const SEDARIM = [
-  ["Zeraim", [["Berachos", 9], ["Peah", 8], ["Demai", 7], ["Kilayim", 9], ["Sheviis", 10],
-    ["Terumos", 11], ["Maasros", 5], ["Maaser Sheni", 5], ["Challah", 4], ["Orlah", 3], ["Bikkurim", 4]]],
-  ["Moed", [["Shabbos", 24], ["Eruvin", 10], ["Pesachim", 10], ["Shekalim", 8], ["Yoma", 8],
-    ["Sukkah", 5], ["Beitzah", 5], ["Rosh Hashanah", 4], ["Taanis", 4], ["Megillah", 4],
+  ["Zeraim", [["Berachot", 9], ["Peah", 8], ["Demai", 7], ["Kilayim", 9], ["Sheviit", 10],
+    ["Terumot", 11], ["Maasrot", 5], ["Maaser Sheni", 5], ["Challah", 4], ["Orlah", 3], ["Bikkurim", 4]]],
+  ["Moed", [["Shabbat", 24], ["Eruvin", 10], ["Pesachim", 10], ["Shekalim", 8], ["Yoma", 8],
+    ["Sukkah", 5], ["Beitzah", 5], ["Rosh Hashanah", 4], ["Taanit", 4], ["Megillah", 4],
     ["Moed Katan", 3], ["Chagigah", 3]]],
-  ["Nashim", [["Yevamos", 16], ["Kesubos", 13], ["Nedarim", 11], ["Nazir", 9], ["Sotah", 9],
+  ["Nashim", [["Yevamot", 16], ["Ketubot", 13], ["Nedarim", 11], ["Nazir", 9], ["Sotah", 9],
     ["Gittin", 9], ["Kiddushin", 4]]],
-  ["Nezikin", [["Bava Kamma", 10], ["Bava Metzia", 10], ["Bava Basra", 10], ["Sanhedrin", 11],
-    ["Makkos", 3], ["Shevuos", 8], ["Eduyos", 8], ["Avodah Zarah", 5], ["Avos", 6], ["Horayos", 3]]],
-  ["Kodashim", [["Zevachim", 14], ["Menachos", 13], ["Chullin", 12], ["Bechoros", 9], ["Arachin", 9],
-    ["Temurah", 7], ["Kerisos", 6], ["Meilah", 6], ["Tamid", 7], ["Middos", 5], ["Kinnim", 3]]],
-  ["Taharos", [["Keilim", 30], ["Ohalos", 18], ["Negaim", 14], ["Parah", 12], ["Taharos", 10],
-    ["Mikvaos", 10], ["Niddah", 10], ["Machshirin", 6], ["Zavim", 5], ["Tevul Yom", 4],
+  ["Nezikin", [["Bava Kamma", 10], ["Bava Metzia", 10], ["Bava Batra", 10], ["Sanhedrin", 11],
+    ["Makkot", 3], ["Shevuot", 8], ["Eduyot", 8], ["Avodah Zarah", 5], ["Avot", 6], ["Horayot", 3]]],
+  ["Kodashim", [["Zevachim", 14], ["Menachot", 13], ["Chullin", 12], ["Bechorot", 9], ["Arachin", 9],
+    ["Temurah", 7], ["Keritot", 6], ["Meilah", 6], ["Tamid", 7], ["Middot", 5], ["Kinnim", 3]]],
+  ["Taharot", [["Keilim", 30], ["Ohalot", 18], ["Negaim", 14], ["Parah", 12], ["Taharot", 10],
+    ["Mikvaot", 10], ["Niddah", 10], ["Machshirin", 6], ["Zavim", 5], ["Tevul Yom", 4],
     ["Yadayim", 4], ["Uktzin", 3]]],
 ];
 
-// Eman's already-completed masechtos (seeded done). Dates left blank — real completion
+// Eman's already-completed masechtot (seeded done). Dates left blank — real completion
 // dates are unknown; marking from the dashboard going forward will date new completions,
 // and these can be backfilled in the Sheet at any time.
-const EMAN_DONE_MASECHTOS = new Set(["Pesachim", "Sukkah", "Avos", "Sanhedrin", "Makkos"]);
+const EMAN_DONE_MASECHTOT = new Set(["Pesachim", "Sukkah", "Avot", "Sanhedrin", "Makkot"]);
 // Yehuda has no seeded progress yet.
-const YEHUDA_DONE_MASECHTOS = new Set();
+const YEHUDA_DONE_MASECHTOT = new Set();
 
 const header = ["seder", "masechta", "perek_num", "perek_id", "eman_done", "eman_date", "yehuda_done", "yehuda_date", "eman_mishnayos", "yehuda_mishnayos"];
 const rows = [header.join(",")];
 let total = 0, emanDone = 0, yehudaDone = 0;
 
-for (const [seder, masechtos] of SEDARIM) {
-  for (const [masechta, count] of masechtos) {
+for (const [seder, masechtot] of SEDARIM) {
+  for (const [masechta, count] of masechtot) {
     for (let n = 1; n <= count; n++) {
-      const eman = EMAN_DONE_MASECHTOS.has(masechta);
-      const yehuda = YEHUDA_DONE_MASECHTOS.has(masechta);
+      const eman = EMAN_DONE_MASECHTOT.has(masechta);
+      const yehuda = YEHUDA_DONE_MASECHTOT.has(masechta);
       if (eman) emanDone++;
       if (yehuda) yehudaDone++;
       total++;

@@ -1,0 +1,266 @@
+/* =========================================================================
+   Shas Tracker v2 — "EmanOS" skin
+   Refined-brutalist personal-dashboard look: cream paper, hard 2px ink
+   rules, monospace data labels, a single steel-blue accent.
+   No border-radius · no box-shadow · no gradients · background never white.
+   Everything is scoped under .duoweb[data-skin="eman"] — the Duolingo skin
+   in duo.css is untouched. Only the Stats and Search views are reachable
+   in this skin (the nav is filtered in duo_app_web.jsx).
+   ========================================================================= */
+
+html:has(.duoweb[data-skin="eman"]),
+body:has(.duoweb[data-skin="eman"]) { background: #efeadd; }
+
+.duoweb[data-skin="eman"] {
+  /* ---- tokens ---- */
+  --fui: "Space Grotesk", system-ui, sans-serif;
+  --fmono: "Space Mono", "Heebo", monospace;
+
+  --bg: #efeadd;
+  --surface: #f5f1e6;
+  --side: #e7e1d2;
+  --soft: #e2dccd;
+  --panel: var(--surface);
+  --ink: #161616;
+  --ink-2: #57524a;
+  --ink-3: #7a7468;          /* muted */
+  --line: #ccc4b3;           /* 1px inner hairlines; container rules are 2px ink */
+  --line-2: #ccc4b3;
+  --grey: var(--soft);
+  --grey-d: var(--line);
+  --pos: #5e8c5e;
+  --neg: #bd6450;
+  --on-acc: #f1ece1;         /* text/icons sitting on the accent fill */
+
+  /* the single steel-blue accent — !important beats the per-person inline --acc */
+  --acc: #4a6d92 !important;
+  --acc-d: #3a5875 !important;
+
+  /* chart series: Abba = steel accent, Yehuda = ink */
+  --abba: #4a6d92; --abba-d: #3a5875;
+  --yeh: var(--ink); --yeh-d: var(--ink);
+
+  --gold: var(--soft); --gold-d: var(--ink-3);
+  --bar-empty: var(--soft);
+  --r-lg: 0px; --r-md: 0px;
+
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* structure is drawn, never rounded, never floated */
+.duoweb[data-skin="eman"] *,
+.duoweb[data-skin="eman"] *::before,
+.duoweb[data-skin="eman"] *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ---- shared bits ---- */
+.duoweb[data-skin="eman"] .loading { font-family: var(--fmono); font-weight: 400; letter-spacing: .11em; text-transform: uppercase; font-size: 12px; color: var(--ink-3); }
+
+/* ============================== SIDEBAR ============================== */
+.duoweb[data-skin="eman"] .websidebar .brand .mark { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .websidebar .brand .bt { font-weight: 700; letter-spacing: -.02em; }
+.duoweb[data-skin="eman"] .websidebar .brand .bs { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; color: var(--ink-3); }
+
+.duoweb[data-skin="eman"] .webnavbtn { color: var(--ink); font-weight: 500; border: 2px solid transparent; }
+.duoweb[data-skin="eman"] .webnavbtn:hover { background: var(--soft); }
+.duoweb[data-skin="eman"] .webnavbtn.on { background: var(--ink); color: var(--bg); }
+
+.duoweb[data-skin="eman"] .webpbtn { border: 2px solid var(--ink); background: var(--surface); }
+.duoweb[data-skin="eman"] .webpbtn .av { background: var(--ink) !important; color: var(--bg); font-family: var(--fmono); }
+.duoweb[data-skin="eman"] .webpbtn .meta i { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .06em; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .webpbtn.abba.on,
+.duoweb[data-skin="eman"] .webpbtn.yeh.on { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.duoweb[data-skin="eman"] .webpbtn.on .av { background: var(--acc) !important; color: var(--on-acc); }
+.duoweb[data-skin="eman"] .webpbtn.abba.on .meta i,
+.duoweb[data-skin="eman"] .webpbtn.yeh.on .meta i { color: var(--bg); opacity: .7; }
+
+/* ============================ CENTER COLUMN ============================ */
+.duoweb[data-skin="eman"] .webcenter { border-inline: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .webcenterhead { border-bottom: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .webcenterhead h1 { font-weight: 700; letter-spacing: -.02em; }
+
+/* ============================== RIGHT RAIL ============================== */
+.duoweb[data-skin="eman"] .railcard { border: 2px solid var(--ink); background: var(--surface); }
+.duoweb[data-skin="eman"] .railcard .rh { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .railcard .rh::before { content: "// "; }
+.duoweb[data-skin="eman"] .railcrown .ic { background: var(--soft); color: var(--ink); }
+.duoweb[data-skin="eman"] .railcrown .v { font-weight: 700; letter-spacing: -.02em; }
+.duoweb[data-skin="eman"] .railcrown .l { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .railprogrow .t { font-family: var(--fmono); font-weight: 400; font-size: 12px; }
+.duoweb[data-skin="eman"] .railprogrow .t b { font-family: var(--fui); font-weight: 700; }
+.duoweb[data-skin="eman"] .railprogrow .track { border: 2px solid var(--ink); background: var(--surface); height: 12px; }
+.duoweb[data-skin="eman"] .raillang button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .raillang button.on { background: var(--ink); color: var(--bg); }
+
+/* ============================== SEARCH VIEW ============================== */
+.duoweb[data-skin="eman"] .searchbox { background: var(--surface); border: 2px solid var(--ink); color: var(--ink-2); }
+.duoweb[data-skin="eman"] .searchbox input { font-weight: 500; }
+.duoweb[data-skin="eman"] .searchbox input::placeholder { font-family: var(--fmono); font-weight: 400; font-size: 13px; letter-spacing: .04em; color: var(--ink-3); }
+
+.duoweb[data-skin="eman"] .statseg button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .statseg button.on { background: var(--acc); border-color: var(--ink); color: var(--on-acc); }
+
+.duoweb[data-skin="eman"] .chips .chip { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; text-transform: uppercase; height: 34px; }
+.duoweb[data-skin="eman"] .chips .chip.on { background: var(--acc); color: var(--on-acc); }
+
+.duoweb[data-skin="eman"] .mcard { border: 2px solid var(--ink); background: var(--surface); }
+.duoweb[data-skin="eman"] .mcard .mh { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.duoweb[data-skin="eman"] .mcard .mh .dot { width: 8px; height: 8px; background: var(--ink) !important; }
+.duoweb[data-skin="eman"] .mcard .mh .nm { font-weight: 700; letter-spacing: -.01em; }
+.duoweb[data-skin="eman"] .mcard .mh .ct { font-family: var(--fmono); font-weight: 400; font-size: 11px; letter-spacing: .06em; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.duoweb[data-skin="eman"] .mcard .mh .mread { background: var(--soft); color: var(--ink) !important; }
+.duoweb[data-skin="eman"] .pinbtn { color: var(--ink-3); }
+.duoweb[data-skin="eman"] .pinbtn:hover { background: var(--soft); }
+.duoweb[data-skin="eman"] .pinbtn.on { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .nextbtn { color: var(--ink-3); }
+.duoweb[data-skin="eman"] .nextbtn:hover { background: var(--soft); }
+.duoweb[data-skin="eman"] .nextbtn.on { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .datebtn { color: var(--ink-3); }
+.duoweb[data-skin="eman"] .datebtn:hover { background: var(--soft); }
+.duoweb[data-skin="eman"] .datectl input[type="date"] { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); font-weight: 500; }
+.duoweb[data-skin="eman"] .datectl .dateapply { background: var(--acc); color: var(--on-acc); box-shadow: none; border: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .mcard .mdone { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; letter-spacing: .04em; color: var(--ink-2); }
+
+.duoweb[data-skin="eman"] .mtile { background: var(--surface); border: 1px solid var(--line); color: var(--ink-3); font-family: var(--fmono); font-weight: 400; font-variant-numeric: tabular-nums; }
+.duoweb[data-skin="eman"] .mtile.done { background: var(--acc) !important; border-color: var(--acc); color: var(--on-acc) !important; font-weight: 700; }
+.duoweb[data-skin="eman"] .searchhint { font-family: var(--fmono); font-weight: 400; font-size: 12px; letter-spacing: .04em; }
+
+/* ============================== STATS VIEW ============================== */
+.duoweb[data-skin="eman"] .stats h2 { font-weight: 700; letter-spacing: -.02em; }
+.duoweb[data-skin="eman"] .stats .subhead { font-family: var(--fmono); font-weight: 400; font-size: 11px; letter-spacing: .06em; color: var(--ink-3); }
+
+.duoweb[data-skin="eman"] .srange button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .srange button.on { background: var(--ink); color: var(--bg); }
+
+/* KPI row — equal cells split by 2px rules, no gap; hero (Abba) inverts to the accent */
+.duoweb[data-skin="eman"] .kpis { gap: 0; border: 2px solid var(--ink); background: var(--surface); }
+.duoweb[data-skin="eman"] .kpi { border: none; }
+.duoweb[data-skin="eman"] .kpi:nth-child(odd) { border-inline-end: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .kpi:nth-child(-n+2) { border-bottom: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .kpi .l { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .kpi .l::before { content: "// "; }
+.duoweb[data-skin="eman"] .kpi .v { font-weight: 700; letter-spacing: -.02em; }
+.duoweb[data-skin="eman"] .kpi .v small { font-family: var(--fmono); font-weight: 400; font-size: 13px; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .kpi .s { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; letter-spacing: .02em; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .kpi:first-child { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .kpi:first-child .l,
+.duoweb[data-skin="eman"] .kpi:first-child .s,
+.duoweb[data-skin="eman"] .kpi:first-child .v small { color: var(--on-acc); opacity: .82; }
+.duoweb[data-skin="eman"] .kpi:first-child .sw { background: var(--on-acc) !important; }
+
+.duoweb[data-skin="eman"] .scard { border: 2px solid var(--ink); background: var(--surface); }
+.duoweb[data-skin="eman"] .scard .ch .t { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .scard .ch .t::before { content: "// "; }
+.duoweb[data-skin="eman"] .scard .ch .leg span { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .06em; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .scard .cs { font-weight: 400; font-size: 12px; color: var(--ink-2); }
+
+.duoweb[data-skin="eman"] .linechart .grid { stroke: var(--line); stroke-width: 1; }
+.duoweb[data-skin="eman"] .linechart .axislbl { fill: var(--ink-3); font-family: var(--fmono); font-weight: 400; }
+.duoweb[data-skin="eman"] .linechart .ln { stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
+.duoweb[data-skin="eman"] .linechart .area { opacity: .18; }
+.duoweb[data-skin="eman"] .linechart circle { r: 3.5; }
+
+.duoweb[data-skin="eman"] .sbrow .sbn { font-weight: 700; }
+.duoweb[data-skin="eman"] .sbrow .sbn .tot { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .06em; }
+.duoweb[data-skin="eman"] .sbrow .pr .ini { font-family: var(--fmono); font-weight: 700; }
+.duoweb[data-skin="eman"] .sbrow .pr .track { border: 1px solid var(--line); background: var(--surface); height: 10px; }
+.duoweb[data-skin="eman"] .sbrow .pr .n { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; }
+
+.duoweb[data-skin="eman"] .pacecol .ph { font-family: var(--fmono); font-weight: 400; font-size: 11px; letter-spacing: .06em; }
+.duoweb[data-skin="eman"] .pacecol .ph b { font-family: var(--fui); font-weight: 700; }
+.duoweb[data-skin="eman"] .pacebars .pb .d { font-family: var(--fmono); font-weight: 400; }
+
+/* ============================ TOAST + MOBILE ============================ */
+.duoweb[data-skin="eman"] .toast { background: var(--ink); color: var(--bg); font-family: var(--fmono); font-weight: 400; font-size: 12px; letter-spacing: .04em; }
+
+.duoweb[data-skin="eman"] .webmobilenav { border-top: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .wmnbtn { color: var(--ink-3); font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .wmnbtn.on { background: var(--ink); color: var(--bg); }
+.duoweb[data-skin="eman"] .mobilectl .mpbtn { background: var(--soft) !important; color: var(--ink); opacity: 1; font-family: var(--fmono); }
+.duoweb[data-skin="eman"] .mobilectl .mpbtn.on { background: var(--acc) !important; color: var(--on-acc); }
+.duoweb[data-skin="eman"] .flagtoggle { background: transparent; border: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .flagtoggle button { color: var(--ink-3); font-family: var(--fmono); }
+.duoweb[data-skin="eman"] .flagtoggle button.on { background: var(--ink); color: var(--bg); }
+
+/* ============================== AUTH GATE ============================== */
+.duoweb[data-skin="eman"] .authgate-overlay { background: rgba(22,22,22,.45); }
+.duoweb[data-skin="eman"] .authgate-card { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); }
+.duoweb[data-skin="eman"] .authgate-lock { background: var(--acc); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .authgate-title { font-weight: 700; letter-spacing: -.01em; }
+.duoweb[data-skin="eman"] .authgate-sub { font-family: var(--fmono); font-weight: 400; font-size: 11px; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .authgate-input { border: 2px solid var(--ink); background: var(--bg); color: var(--ink); font-family: var(--fmono); }
+.duoweb[data-skin="eman"] .authgate-input:focus { border-color: var(--acc); }
+.duoweb[data-skin="eman"] .authgate-err { color: var(--neg); font-family: var(--fmono); font-weight: 400; }
+.duoweb[data-skin="eman"] .authgate-cancel { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .authgate-submit { background: var(--acc); color: var(--on-acc); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ============================ SEFARIA READER ============================ */
+.duoweb[data-skin="eman"] .rdr-overlay { background: rgba(22,22,22,.45); }
+.duoweb[data-skin="eman"] .rdr-card { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); }
+.duoweb[data-skin="eman"] .rdr-head { border-bottom: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .rdr-title .em { display: none; }  /* no emoji in EmanOS */
+.duoweb[data-skin="eman"] .rdr-title .tt { font-weight: 700; letter-spacing: -.01em; }
+.duoweb[data-skin="eman"] .rdr-nav, .duoweb[data-skin="eman"] .rdr-close { background: var(--soft); color: var(--ink); }
+.duoweb[data-skin="eman"] .rdr-modes button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .rdr-modes button.on { background: var(--acc); border-color: var(--ink); color: var(--on-acc); }
+.duoweb[data-skin="eman"] .rdr-hint { font-family: var(--fmono); font-weight: 400; font-size: 12px; }
+.duoweb[data-skin="eman"] .rdr-retry { background: var(--acc); color: var(--on-acc); font-family: var(--fmono); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .rdr-mishnah { border-bottom: 1px solid var(--line); }
+.duoweb[data-skin="eman"] .rdr-mishnah .badge { background: var(--soft); color: var(--ink); font-family: var(--fmono); }
+.duoweb[data-skin="eman"] .rdr-mishnah .en { color: var(--ink-2); }
+.duoweb[data-skin="eman"] .rdr-foot { border-top: 2px solid var(--ink); }
+.duoweb[data-skin="eman"] .rdr-mark { background: var(--acc); color: var(--on-acc); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .rdr-mark.done { background: transparent; border: 2px solid var(--acc); color: var(--acc); }
+.duoweb[data-skin="eman"] .rdr-sefaria { font-family: var(--fmono); font-weight: 400; font-size: 11px; color: var(--acc); }
+.duoweb[data-skin="eman"] .rdr-sefaria:hover { color: var(--acc-d); }
+
+/* ============================ CELEBRATION ============================ */
+.duoweb[data-skin="eman"] .cele-overlay { background: rgba(22,22,22,.45); }
+.duoweb[data-skin="eman"] .cele-card { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); }
+.duoweb[data-skin="eman"] .cele-card .medal { background: var(--acc) !important; color: var(--on-acc); }
+.duoweb[data-skin="eman"] .cele-card .yell { color: var(--ink); font-weight: 700; letter-spacing: -.02em; }
+.duoweb[data-skin="eman"] .cele-card .sub { font-weight: 500; }
+.duoweb[data-skin="eman"] .cele-card .meta { font-family: var(--fmono); font-weight: 400; font-size: 11px; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .cele-card .xp { background: var(--soft); border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; }
+.duoweb[data-skin="eman"] .cele-btn { background: var(--acc); color: var(--on-acc); font-family: var(--fmono); font-weight: 700; font-size: 13px; letter-spacing: .08em; }
+.duoweb[data-skin="eman"] .confetti i { background: var(--acc) !important; }
+
+/* Siyum calculator */
+.duoweb[data-skin="eman"] .siyum .siyum-rem { font-weight: 700; letter-spacing: -.01em; }
+.duoweb[data-skin="eman"] .siyum .siyum-rem .loadingdots { font-family: var(--fmono); font-weight: 400; font-size: 12px; letter-spacing: .04em; }
+.duoweb[data-skin="eman"] .siyum-modes button { background: transparent; border: 2px solid var(--ink); color: var(--ink); font-family: var(--fmono); font-weight: 700; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.duoweb[data-skin="eman"] .siyum-modes button.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.duoweb[data-skin="eman"] .siyum-field .fl { font-weight: 500; }
+.duoweb[data-skin="eman"] .siyum-field input { background: var(--surface); border: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.duoweb[data-skin="eman"] .siyum-out { border-top: 2px solid var(--line); }
+.duoweb[data-skin="eman"] .siyum-out .l { font-family: var(--fmono); font-weight: 400; font-size: 10px; letter-spacing: .11em; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .siyum-out .l::before { content: "// "; }
+.duoweb[data-skin="eman"] .siyum-out .v { font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.duoweb[data-skin="eman"] .siyum-out .s { font-family: var(--fmono); font-weight: 400; font-size: 11px; color: var(--ink-2); }
+.duoweb[data-skin="eman"] .siyum-out .big { color: var(--ink); font-weight: 700; }
+.duoweb[data-skin="eman"] .siyum-out .hint { font-family: var(--fmono); font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+.duoweb[data-skin="eman"] .siyum-note { font-family: var(--fmono); font-weight: 400; font-size: 10.5px; letter-spacing: .02em; }
+
+/* ========================= DARK MODE (warm charcoal) ========================= */
+@media (prefers-color-scheme: dark) {
+  html:has(.duoweb[data-skin="eman"]),
+  body:has(.duoweb[data-skin="eman"]) { background: #1a1916; }
+  .duoweb[data-skin="eman"] {
+    --bg: #1a1916;
+    --surface: #232220;
+    --side: #201f1c;
+    --soft: #2b2926;
+    --ink: #ece7da;
+    --ink-2: #b5af9f;
+    --ink-3: #9a9486;
+    --line: #3a382f;
+    --line-2: #3a382f;
+    /* accent unchanged; Yehuda's series follows --ink and flips to light */
+  }
+  .duoweb[data-skin="eman"] .authgate-overlay,
+  .duoweb[data-skin="eman"] .rdr-overlay,
+  .duoweb[data-skin="eman"] .cele-overlay { background: rgba(10,10,8,.6); }
+}

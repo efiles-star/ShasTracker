@@ -344,7 +344,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .mcard .mh .dot { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
 .mcard .mh .nm { font-weight: 900; font-size: 16px; letter-spacing: -.2px; }
 .mcard .mh .ct { margin-inline-start: auto; font-weight: 900; font-size: 13px; color: var(--ink-3); }
-.mcard .mtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 7px; }
+.mcard .mtiles, .nowcard .mtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 7px; }
 .mtile { aspect-ratio: 1; border-radius: 10px; font-weight: 900; font-size: 13px; display: grid; place-items: center; color: #b0b0b0; background: var(--grey); box-shadow: 0 3px 0 var(--grey-d); transition: transform .08s; }
 .mtile:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--grey-d); }
 .mtile.done { color: var(--non); }
@@ -479,9 +479,195 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .raillang button.on { background: var(--ink); color: #fff; }
 
 @media (max-width: 1180px) { .duoweb { grid-template-columns: 84px minmax(0, 640px) 300px; } .websidebar .brand .bt, .websidebar .brand .bs, .webnavbtn span:last-child, .webpbtn .meta { display: none; } .websidebar .brand { justify-content: center; } .webnavbtn { justify-content: center; } .webpbtn { justify-content: center; } }
-@media (max-width: 900px) { .duoweb { grid-template-columns: 1fr; } .websidebar, .webrail { display: none; } }
+/* mobile: sidebar + rail collapse into a bottom tab bar and compact header controls */
+.webmobilenav, .webcenterhead .mobilectl { display: none; }
+@media (max-width: 900px) {
+  .duoweb { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; height: 100dvh; gap: 0; padding: 0; }
+  .websidebar, .webrail { display: none; }
+  .webcenter { border-inline: none; }
+  .webcenterhead { padding: 12px 14px 10px; }
+  .webcenterhead .mobilectl { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+  .mobilectl .mpbtn {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    color: #fff; font-weight: 900; font-size: 14px; opacity: .4; flex: 0 0 auto;
+  }
+  .mobilectl .mpbtn.on { opacity: 1; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--pc); }
+  .webmobilenav {
+    display: flex; gap: 4px; padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+    background: var(--bg); border-top: 2px solid var(--line);
+  }
+  .wmnbtn {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 2px; border-radius: 14px; color: var(--ink-3);
+    font-weight: 900; font-size: 10.5px; letter-spacing: .2px;
+  }
+  .wmnbtn .lb { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wmnbtn.on { color: var(--acc-d); background: color-mix(in srgb, var(--acc) 14%, #fff); }
+}
+
+/* ============================== PIN (currently-learning) BUTTON ============================== */
+.pinbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); margin-inline-start: 4px; transition: background .12s, color .12s; flex: 0 0 auto; }
+.pinbtn:hover { background: #f0f0f0; }
+.pinbtn.on { color: var(--acc-d); background: color-mix(in srgb, var(--acc) 16%, #fff); }
+
+/* ============================== SIYUM CALCULATOR ============================== */
+.siyum .siyum-rem { font-weight: 900; font-size: 15px; color: var(--ink); margin: 2px 0 14px; }
+.siyum .siyum-rem .loadingdots { color: var(--ink-3); font-weight: 800; font-size: 13px; }
+.siyum-modes { display: flex; gap: 8px; margin-bottom: 14px; }
+.siyum-modes button { flex: 1; height: 40px; border-radius: 12px; font-weight: 900; font-size: 12.5px; background: #f4f4f4; color: var(--ink-2); border: 2px solid transparent; padding: 0 8px; }
+.siyum-modes button.on { background: color-mix(in srgb, var(--acc) 16%, #fff); color: var(--acc-d); border-color: var(--acc); }
+.siyum-field { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.siyum-field .fl { font-weight: 800; font-size: 13.5px; color: var(--ink-2); flex: 1; }
+.siyum-field input { width: 150px; height: 46px; border: 2px solid var(--line); border-radius: 12px; text-align: center; font: inherit; font-weight: 900; font-size: 16px; color: var(--ink); outline: none; background: #fff; }
+.siyum-field input:focus { border-color: var(--acc); }
+.siyum-out { border-top: 2px solid var(--line); padding-top: 14px; min-height: 40px; text-align: center; }
+.siyum-out .l { font-weight: 900; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; color: var(--ink-3); }
+.siyum-out .v { font-weight: 900; font-size: 26px; letter-spacing: -.6px; color: var(--acc-d); margin-top: 4px; line-height: 1.05; }
+.siyum-out .s { font-weight: 700; font-size: 13px; color: var(--ink-2); margin-top: 5px; }
+.siyum-out .big { font-weight: 900; font-size: 16px; color: var(--acc-d); }
+.siyum-out .hint { font-weight: 700; font-size: 13px; color: var(--ink-3); }
+.siyum-note { margin-top: 12px; font-weight: 700; font-size: 11.5px; line-height: 1.4; color: var(--ink-3); }
+
+/* ============================== PATH TOOLS (collapse all) ============================== */
+.pathtools { display: flex; justify-content: flex-end; padding: 14px 20px 0; }
+.collapsebtn {
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px;
+  border-radius: 999px; font-weight: 900; font-size: 12.5px; letter-spacing: .2px;
+  color: var(--acc-d); background: color-mix(in srgb, var(--acc) 12%, #fff);
+  border: 2px solid color-mix(in srgb, var(--acc) 40%, #fff); transition: transform .08s;
+}
+.collapsebtn:active { transform: translateY(1px); }
+
+/* ============================== COMPLETION DATE (set + display) ============================== */
+.datebtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); transition: background .12s, color .12s; flex: 0 0 auto; }
+.datebtn:hover { background: #f0f0f0; }
+.datectl { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.datectl input[type="date"] { height: 30px; border: 2px solid var(--line); border-radius: 9px; padding: 0 8px; font: inherit; font-weight: 700; font-size: 12px; color: var(--ink); background: #fff; outline: none; }
+.datectl input[type="date"]:focus { border-color: var(--acc); }
+.datectl .dateapply { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: var(--acc); color: #fff; box-shadow: 0 2px 0 var(--acc-d); }
+.datectl .dateapply:disabled { opacity: .4; box-shadow: none; }
+.datectl .datecancel { width: 26px; height: 30px; border-radius: 8px; color: var(--ink-3); font-weight: 900; font-size: 13px; }
+.mcard .mdone { font-weight: 800; font-size: 11px; color: var(--acc-d); margin: -4px 0 10px; }
+
+/* ============================== NEXT UP (button + queue) ============================== */
+.nextbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ink-3); transition: background .12s, color .12s; flex: 0 0 auto; }
+.nextbtn:hover { background: #f0f0f0; }
+.nextbtn.on { color: var(--acc-d); background: color-mix(in srgb, var(--acc) 16%, #fff); }
+
+.nextsec { margin-top: 14px; border-top: 2px solid var(--line); padding-top: 12px; }
+.nexthead { font-weight: 900; font-size: 11px; letter-spacing: .6px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; }
+.nextempty { font-weight: 700; font-size: 12.5px; color: var(--ink-3); padding: 2px 0 4px; }
+.nextlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nextrow { display: flex; align-items: center; gap: 10px; }
+.nextrow .nnum { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 12px; flex: 0 0 auto; }
+.nextrow .nnm { font-weight: 800; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nextrow .nct { margin-inline-start: auto; font-weight: 900; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.nextrow .nread { width: 28px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #f4f4f4; color: var(--ink-2); flex: 0 0 auto; }
+.nextrow .nread:active { transform: translateY(1px); }
+.nextrow .nremove { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-3); font-weight: 900; font-size: 13px; flex: 0 0 auto; }
+.nextrow .nremove:hover { background: #f0f0f0; color: var(--ink); }
+
+/* ============================== NOW LEARNING VIEW ============================== */
+.nowview { padding: 18px 16px 120px; display: flex; flex-direction: column; gap: 18px; }
+.nowcard { border: 2px solid var(--line); border-radius: 18px; padding: 16px; }
+.nowhead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.nowhead .av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 13px; flex: 0 0 auto; }
+.nowhead .nm { font-weight: 900; font-size: 16px; }
+.nowhead .nowclear { margin-inline-start: auto; font-weight: 800; font-size: 12px; color: var(--ink-3); text-decoration: underline; }
+.nowempty { font-weight: 700; font-size: 13px; color: var(--ink-3); padding: 10px 2px; }
+.nowhint { font-weight: 700; font-size: 12px; color: var(--ink-3); margin-top: 10px; text-align: center; }
+.nowview .unit { position: static; margin: 0 0 14px; }
 
 /* tweak swatch grid */
 .tw-accents { display: flex; gap: 10px; }
 .tw-accents .sw { flex: 1; height: 44px; border-radius: 12px; border: 3px solid transparent; display: grid; place-items: center; font-weight: 900; font-size: 12px; color: #fff; }
 .tw-accents .sw.on { outline: 3px solid #111; outline-offset: 2px; }
+
+/* ============================ SEFARIA READER ============================ */
+/* small book button beside each path node */
+.noderow .readbtn {
+  position: absolute; inset-inline-start: calc(50% + 46px); top: 50%;
+  transform: translateY(-50%);
+  width: 34px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: #fff; color: var(--nd, var(--ink-2));
+  border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line-2);
+  transition: transform .08s;
+}
+.noderow .readbtn:active { transform: translateY(calc(-50% + 2px)); box-shadow: 0 1px 0 var(--line-2); }
+
+/* book button in a search masechta card header */
+.mcard .mh .mread {
+  margin-inline-start: auto; width: 32px; height: 30px; border-radius: 10px;
+  display: grid; place-items: center; background: #f4f4f4;
+}
+.mcard .mh .mread:active { transform: translateY(1px); }
+.mcard .mh .mread + .ct { margin-inline-start: 0; }
+
+/* the reader modal */
+.rdr-overlay {
+  position: fixed; inset: 0; z-index: 85; display: grid; place-items: center;
+  background: rgba(30,30,30,.55); padding: 18px; animation: fade .2s ease;
+}
+.rdr-card {
+  display: flex; flex-direction: column; width: 100%; max-width: 620px;
+  max-height: min(86dvh, 900px); background: #fff; border-radius: 22px; overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.3); animation: pop .28s cubic-bezier(.2,1.3,.5,1);
+}
+.rdr-head {
+  display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px;
+  border-bottom: 2px solid var(--line);
+}
+.rdr-head .rdr-title { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.rdr-head .rdr-title .em { font-size: 20px; }
+.rdr-head .rdr-title .tt { font-weight: 900; font-size: 17px; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rdr-nav {
+  width: 38px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+  background: #f4f4f4; color: var(--rd, var(--ink-2)); flex: 0 0 auto;
+}
+.rdr-nav:disabled { opacity: .3; cursor: default; }
+.rdr-nav:not(:disabled):active { transform: translateY(1px); }
+.rdr-close {
+  width: 38px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+  background: #f4f4f4; color: var(--ink-2); font-weight: 900; font-size: 15px; flex: 0 0 auto;
+}
+.rdr-modes { display: flex; gap: 8px; padding: 10px 14px; }
+.rdr-modes button { flex: 1; height: 38px; border-radius: 11px; font-weight: 900; font-size: 13px; background: #f4f4f4; color: var(--ink-2); border: 2px solid transparent; }
+.rdr-modes button.on { background: color-mix(in srgb, var(--rc, var(--abba)) 16%, #fff); color: var(--rd, var(--abba-d)); border-color: var(--rc, var(--abba)); }
+.rdr-body { flex: 1 1 0; min-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 18px 14px; }
+.rdr-hint { text-align: center; color: var(--ink-3); font-weight: 800; font-size: 14px; padding: 40px 12px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.rdr-retry { height: 40px; padding: 0 22px; border-radius: 12px; background: var(--rc, var(--abba)); color: #fff; font-weight: 900; font-size: 13px; box-shadow: 0 3px 0 var(--rd, var(--abba-d)); }
+.rdr-mishnah { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1.5px solid var(--line); }
+.rdr-mishnah:last-child { border-bottom: none; }
+.rdr-mishnah .badge {
+  flex: 0 0 auto; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 9px; margin-top: 2px;
+  display: grid; place-items: center; font-weight: 900; font-size: 13px;
+  background: color-mix(in srgb, var(--rc, var(--abba)) 16%, #fff); color: var(--rd, var(--abba-d));
+  font-family: var(--fhe);
+}
+.rdr-mishnah .texts { flex: 1; min-width: 0; }
+.rdr-mishnah .he { margin: 0; font-family: var(--fhe); font-weight: 500; font-size: 19px; line-height: 1.75; color: var(--ink); text-align: right; }
+.rdr-mishnah .en { margin: 0; font-weight: 600; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); text-align: left; }
+.rdr-mishnah .he + .en { margin-top: 8px; }
+.rdr-foot {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 2px solid var(--line);
+}
+.rdr-mark {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px;
+  border-radius: 13px; font-weight: 900; font-size: 13.5px;
+  background: var(--rc, var(--abba)); color: #fff; box-shadow: 0 3px 0 var(--rd, var(--abba-d));
+  transition: transform .08s;
+}
+.rdr-mark:active { transform: translateY(2px); box-shadow: none; }
+.rdr-mark.done { background: #fff; color: var(--rd, var(--abba-d)); border: 2px solid var(--rc, var(--abba)); box-shadow: none; }
+.rdr-sefaria { margin-inline-start: auto; font-weight: 800; font-size: 12.5px; color: var(--ink-3); text-decoration: none; }
+.rdr-sefaria:hover { color: var(--ink-2); text-decoration: underline; }
+
+/* read button on the Now Learning masechta banner */
+.nowview .unit .nowread {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 32px; border-radius: 999px; flex: 0 0 auto;
+  background: rgba(255,255,255,.22); color: inherit; margin-inline-start: 8px;
+}
+.nowview .unit .nowread:active { transform: translateY(1px); }

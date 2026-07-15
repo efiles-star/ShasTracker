@@ -5,13 +5,23 @@
      doGet  → returns the whole board as JSON:
               { perakim: [ { perek_id, seder, masechta, perek_num,
                              eman_done, eman_date, yehuda_done, yehuda_date,
-                             eman_mishnayos, yehuda_mishnayos } ] }
-     doPost → marks one (person × perek) with status + date + the person's
-              learned-mishnayos list (requires a password — reading stays
-              public, writing doesn't):
-              body { perek_id, person: "eman"|"yehuda", done: bool,
-                     date: "YYYY-MM-DD"|null, mishnayos: "1,3,4"|"",
-                     password: string }
+                             eman_mishnayos, yehuda_mishnayos } ],
+                current: { eman: string|null, yehuda: string|null },
+                next:    { eman: string[], yehuda: string[] } }
+     doPost → requires a password (reading stays public, writing doesn't);
+              dispatches by body.action:
+              action "toggle" (default) — mark one (perek_id, person) cell,
+              optionally with the person's learned-mishnayos list:
+                body { perek_id, person: "eman"|"yehuda", done: bool,
+                       date: "YYYY-MM-DD"|null, mishnayos: "1,3,4"|"",
+                       password: string }
+              action "setCurrent" — pin/clear the masechta a person is
+              currently learning:
+                body { action: "setCurrent", person: "eman"|"yehuda",
+                       masechta: string|"", password: string }
+              action "setNext" — replace a person's ordered "next up" queue:
+                body { action: "setNext", person: "eman"|"yehuda",
+                       next: string[], password: string }
               → { ok: true } or { ok: false, error: "bad password" }
 
    Mishnayos sub-tasks: the optional columns eman_mishnayos / yehuda_mishnayos
@@ -36,6 +46,29 @@ var TZ = Session.getScriptTimeZone();
    rotate it any time without editing or redeploying the script. */
 function getWritePassword_() {
   return PropertiesService.getScriptProperties().getProperty("WRITE_PASSWORD") || "";
+}
+
+/* "Currently learning" — one masechta pinned per person, independent of perek
+   progress (learning is non-sequential). Stored the same way as the password:
+   Script Properties, not the Sheet, so no schema change and instant reads. */
+function getCurrentMasechtos_() {
+  var props = PropertiesService.getScriptProperties();
+  return {
+    eman: props.getProperty("CURRENT_EMAN") || null,
+    yehuda: props.getProperty("CURRENT_YEHUDA") || null,
+  };
+}
+
+/* "Next up" — a short ordered queue of masechtot per person, stored as a JSON
+   array string in Script Properties (NEXT_EMAN / NEXT_YEHUDA). Same rationale
+   as current: no Sheet schema change, instant reads. */
+function getNextMasechtos_() {
+  var props = PropertiesService.getScriptProperties();
+  function parse(v) { try { var a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  return {
+    eman: parse(props.getProperty("NEXT_EMAN")),
+    yehuda: parse(props.getProperty("NEXT_YEHUDA")),
+  };
 }
 
 /* ---- column lookup by header name (order-independent) ---- */
@@ -91,10 +124,10 @@ function doGet() {
       });
     });
   }
-  return json_({ perakim: perakim });
+  return json_({ perakim: perakim, current: getCurrentMasechtos_(), next: getNextMasechtos_() });
 }
 
-/* ---- POST: mark one (perek_id, person) cell — requires the write password ---- */
+/* ---- POST: requires the write password, then dispatches by action ---- */
 function doPost(e) {
   var body;
   try {
@@ -107,6 +140,41 @@ function doPost(e) {
   if (!expected) return json_({ ok: false, error: "server not configured: set the WRITE_PASSWORD script property" });
   if (String(body.password) !== expected) return json_({ ok: false, error: "bad password" });
 
+  if (body.action === "setCurrent") return handleSetCurrent_(body);
+  if (body.action === "setNext") return handleSetNext_(body);
+  return handleToggle_(body);
+}
+
+/* action "setNext": replace a person's ordered "next up" queue with body.next
+   (an array of masechta names). No sheet lock — a single property set. */
+function handleSetNext_(body) {
+  var person = body.person;
+  if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
+
+  var list = Array.isArray(body.next) ? body.next.filter(function (m) { return m; }).map(String) : [];
+  var props = PropertiesService.getScriptProperties();
+  var key = person === "eman" ? "NEXT_EMAN" : "NEXT_YEHUDA";
+  if (list.length) props.setProperty(key, JSON.stringify(list)); else props.deleteProperty(key);
+
+  return json_({ ok: true, next: getNextMasechtos_() });
+}
+
+/* action "setCurrent": pin (or clear, if masechta is empty) the masechta a
+   person is currently learning. No sheet lock needed — a single property set. */
+function handleSetCurrent_(body) {
+  var person = body.person;
+  if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
+
+  var props = PropertiesService.getScriptProperties();
+  var key = person === "eman" ? "CURRENT_EMAN" : "CURRENT_YEHUDA";
+  var masechta = body.masechta ? String(body.masechta) : "";
+  if (masechta) props.setProperty(key, masechta); else props.deleteProperty(key);
+
+  return json_({ ok: true, current: getCurrentMasechtos_() });
+}
+
+/* default action: mark one (perek_id, person) cell with status + date */
+function handleToggle_(body) {
   var person = body.person;
   if (person !== "eman" && person !== "yehuda") return json_({ ok: false, error: "bad person" });
   if (!body.perek_id) return json_({ ok: false, error: "missing perek_id" });
