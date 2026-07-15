@@ -1,0 +1,16 @@
+{
+  "name": "shastracker-apps-script",
+  "version": "1.0.0",
+  "private": true,
+  "description": "clasp tooling to push and deploy the Shas Tracker Apps Script backend (apps-script/Code.gs).",
+  "scripts": {
+    "login": "clasp login",
+    "pull": "clasp pull",
+    "push": "clasp push",
+    "deploy": "clasp deploy",
+    "open": "clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "2.4.2"
+  }
+}
