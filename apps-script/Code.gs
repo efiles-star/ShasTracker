@@ -4,14 +4,17 @@
 
      doGet  → returns the whole board as JSON:
               { perakim: [ { perek_id, seder, masechta, perek_num,
-                             eman_done, eman_date, yehuda_done, yehuda_date } ],
+                             eman_done, eman_date, yehuda_done, yehuda_date,
+                             eman_mishnayos, yehuda_mishnayos } ],
                 current: { eman: string|null, yehuda: string|null },
                 next:    { eman: string[], yehuda: string[] } }
      doPost → requires a password (reading stays public, writing doesn't);
               dispatches by body.action:
-              action "toggle" (default) — mark one (perek_id, person) cell:
+              action "toggle" (default) — mark one (perek_id, person) cell,
+              optionally with the person's learned-mishnayos list:
                 body { perek_id, person: "eman"|"yehuda", done: bool,
-                       date: "YYYY-MM-DD"|null, password: string }
+                       date: "YYYY-MM-DD"|null, mishnayos: "1,3,4"|"",
+                       password: string }
               action "setCurrent" — pin/clear the masechta a person is
               currently learning:
                 body { action: "setCurrent", person: "eman"|"yehuda",
@@ -20,6 +23,12 @@
                 body { action: "setNext", person: "eman"|"yehuda",
                        next: string[], password: string }
               → { ok: true } or { ok: false, error: "bad password" }
+
+   Mishnayos sub-tasks: the optional columns eman_mishnayos / yehuda_mishnayos
+   hold a comma-separated list of learned mishna numbers for perakim that are
+   in progress. A done perek means ALL its mishnayos are learned, so the list
+   is stored blank once done = TRUE. Sheets without these two columns keep
+   working — mishna-level progress just isn't persisted until you add them.
 
    Deploy: Extensions → Apps Script → paste this → Deploy → New deployment →
    type "Web app" → Execute as "Me", Who has access "Anyone" → copy the /exec
@@ -75,7 +84,12 @@ function headerIndex_(sh) {
   headers.forEach(function (h, i) { idx[String(h).trim()] = i; });
   ["seder", "masechta", "perek_num", "perek_id", "eman_done", "eman_date", "yehuda_done", "yehuda_date"]
     .forEach(function (col) { if (!(col in idx)) throw new Error("Missing column: " + col); });
+  // eman_mishnayos / yehuda_mishnayos are optional — older sheets work without them
   return idx;
+}
+function mishnayosStr_(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  return String(v);
 }
 function fmtDate_(v) {
   if (v === "" || v === null || v === undefined) return null;
@@ -105,6 +119,8 @@ function doGet() {
         eman_date: fmtDate_(r[idx.eman_date]),
         yehuda_done: r[idx.yehuda_done] === true || String(r[idx.yehuda_done]).toUpperCase() === "TRUE",
         yehuda_date: fmtDate_(r[idx.yehuda_date]),
+        eman_mishnayos: "eman_mishnayos" in idx ? mishnayosStr_(r[idx.eman_mishnayos]) : "",
+        yehuda_mishnayos: "yehuda_mishnayos" in idx ? mishnayosStr_(r[idx.yehuda_mishnayos]) : "",
       });
     });
   }
@@ -189,6 +205,16 @@ function handleToggle_(body) {
     var dateCol = (person === "eman" ? idx.eman_date : idx.yehuda_date) + 1;
     sh.getRange(row, doneCol).setValue(done);
     sh.getRange(row, dateCol).setValue(date);
+
+    // learned-mishnayos list for in-progress perakim (skipped for old sheets
+    // without the column). Forced to plain text so "1,2" is never read as a
+    // decimal number in comma-locale spreadsheets.
+    var mishnaKey = person + "_mishnayos";
+    if (body.mishnayos !== undefined && (mishnaKey in idx)) {
+      var mRange = sh.getRange(row, idx[mishnaKey] + 1);
+      mRange.setNumberFormat("@");
+      mRange.setValue(String(body.mishnayos == null ? "" : body.mishnayos));
+    }
 
     return json_({ ok: true });
   } catch (err) {

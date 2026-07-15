@@ -167,6 +167,10 @@ const SHAPE_MEM = new Map();
 const shapeCacheKey = title => "shas2-shape:" + title;
 
 async function fetchMasechtaShape(masechta) {
+  // the bundled MISHNAYOS counts (shas.js) are the same Vilna division Sefaria
+  // serves — use them first so shapes resolve instantly and offline
+  const bundled = (window.MISHNA_COUNTS || {})[masechta];
+  if (Array.isArray(bundled) && bundled.length) return bundled;
   const title = sefariaTitle(masechta);
   if (SHAPE_MEM.has(title)) return SHAPE_MEM.get(title);
   try {

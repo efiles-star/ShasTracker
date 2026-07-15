@@ -29,9 +29,13 @@ See [`docs/Mishnah-Shas-Tracker-PRD.md`](docs/Mishnah-Shas-Tracker-PRD.md) for t
 
 Three views, switched from the left nav:
 
-- **Path** — the daily driver. Tap a perek to mark it learned (optimistic UI, writes
-  back via `doPost`); tap again to unmark. Whole-masechta and whole-Seder completions
-  celebrate.
+- **Path** — the daily driver. Tap a perek to open its **mishnayos sheet**: every
+  mishna in the perek is a tappable sub-task, plus a "Mark whole perek" button
+  (optimistic UI, writes back via `doPost`). Marking the whole perek marks all its
+  mishnayos; marking the last remaining mishna auto-completes the perek; unmarking
+  the perek clears its mishnayos, and unmarking one mishna reopens a completed perek
+  — the two levels always stay in sync. In-progress perakim show a partial-progress
+  ring on the node. Perek, whole-masechta and whole-Seder completions celebrate.
 - **Stats** — pace and momentum: headline KPIs, cumulative-over-time chart per person,
   per-Seder breakdown, last-7-days pace. Date-range scoping (30 / 90 / all) lives here.
 - **Search** — jump to a masechta, filter by Seder and by status (All / Left / Done),
@@ -51,9 +55,15 @@ sidebar — taps apply to that person.
 ## Data model
 
 The dataset is verified against the standard Mishnah counts: **6 Sedarim, 63 masechtot,
-525 perakim** (Zeraim 75 · Moed 88 · Nashim 71 · Nezikin 74 · Kodashim 91 · Taharot 126).
-Each perek carries a stable `perek_id` (e.g. `Moed.Sukkah.3`) plus done/date for each
-person — the same wide-format shape as the Google Sheet.
+525 perakim, 4,192 mishnayot** (Zeraim 75 · Moed 88 · Nashim 71 · Nezikin 74 ·
+Kodashim 91 · Taharot 126 perakim). Each perek carries a stable `perek_id` (e.g.
+`Moed.Sukkah.3`) plus done/date and a learned-mishnayos list for each person — the
+same wide-format shape as the Google Sheet. Mishnayos-per-perek counts follow the
+standard printed (Vilna) division as published on Sefaria and are bundled in `shas.js`
+(`MISHNAYOS`, exposed as `MISHNA_COUNTS`); the reader and Siyum calculator use them as
+the primary shape source (falling back to Sefaria's shape API for anything missing).
+A perek marked done implies all of its mishnayos, so the stored list only matters
+for perakim in progress.
 
 Names are displayed in modern Sephardi transliteration (Avot, Shabbat, Berachot). The
 live Google Sheet may still carry the original Ashkenazi spellings (Avos, Shabbos,

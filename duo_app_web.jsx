@@ -7,6 +7,7 @@ function WebApp() {
     cele, setCele, toast, collapsedSed, collapsedMas, toggleSeder, toggleMasechta,
     collapseAllSed, expandAllSed,
     groups, total, emanTot, yehudaTot, personTotal, onToggle, chestTap, acc, PCOL,
+    sheetPerek, closeSheet, togglePerek, toggleMishna,
     authOpen, authError, submitWriteKey, closeAuthGate, requestSetCurrent, requestNextToggle, requestMasechtaDate,
     readerPerek, openReader, closeReader, readerNav } = A;
   const pct = window.pct;
@@ -133,8 +134,11 @@ function WebApp() {
         ))}
       </nav>
 
+      <window.MishnaSheet p={sheetPerek} person={person} S={S} lang={lang} onClose={closeSheet}
+        onToggleMishna={toggleMishna} onTogglePerek={p => { togglePerek(p); closeSheet(); }} />
+      {/* the reader's "Mark learned" stays a whole-perek action */}
       <window.ReaderModal S={S} lang={lang} rtl={rtl} reader={readerPerek} person={person}
-        onClose={closeReader} onNav={readerNav} onToggle={onToggle} />
+        onClose={closeReader} onNav={readerNav} onToggle={togglePerek} />
       <window.Celebration cele={cele} onClose={() => setCele(null)} />
       <window.AuthGate open={authOpen} error={authError} onSubmit={submitWriteKey} onCancel={closeAuthGate} S={S} />
       <div className={"toast" + (toast ? " show" : "")}>{toast}</div>

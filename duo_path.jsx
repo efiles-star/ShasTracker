@@ -26,6 +26,7 @@ const DP = {
   expandAll:   "M7 5l5 5 5-5M7 11l5 5 5-5",   // double chevron down
   nextUp:  "M4 6h10M4 12h10M4 18h7M17 15l3 3 3-3M20 18V9", // list + down-arrow (queue)
   cal:     "M5 5h14v14H5zM5 9h14M8 3v4M16 3v4", // calendar
+  x:       "M18 6 6 18M6 6l12 12",
 };
 
 /* emoji — one per Seder, one per Masechta (keyed by the English name in shas.js) */
@@ -62,14 +63,17 @@ const CONFETTI_COLORS = ["#58cc02", "#1cb0f6", "#ffc800", "#ff5252", "#ce82ff", 
 const AMP = [0, -46, -66, -46, 0, 46, 66, 46];
 
 /* ------------------------------ a single perek node ------------------------------ */
-function TrailNode({ p, col, done, current, offset, onToggle, onRead, nums, readLabel }) {
+function TrailNode({ p, col, done, current, offset, onToggle, onRead, nums, readLabel, partial }) {
   const state = done ? "done" : current ? "current" : "future";
   const style = { "--nc": col.c, "--nd": col.d, "--non": col.on };
+  const frac = done ? 0 : partial || 0; // learned mishnayos ÷ total — ring on in-progress perakim
   return (
     <div className="noderow" style={{ transform: `translateX(${offset}px)` }}>
       <button className={"node " + state} style={style} onClick={() => onToggle(p)}
         aria-label={p.masechta + " perek " + p.perek_num}>
         {current && <span className="pulse" />}
+        {frac > 0 && <span className="mring"
+          style={{ background: `conic-gradient(${col.c} ${frac * 360}deg, var(--line) 0deg)` }} />}
         <span className="cap">
           {done
             ? <span className="star"><DIcon d={DP.star} w={26} fill /></span>
@@ -144,6 +148,49 @@ function Celebration({ cele, onClose }) {
         {cele.meta && <div className="meta">{cele.meta}</div>}
         {cele.xp && <div className="xp"><DIcon d={DP.crown} w={16} fill />{cele.xp}</div>}
         <button className="cele-btn" onClick={onClose}>{cele.cta}</button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------ mishnayos sheet (per-perek sub-tasks) ------------------
+   Tapping a perek node opens this popup: each mishna is a tappable sub-task,
+   and the footer button marks/unmarks the whole perek at once. */
+function MishnaSheet({ p, person, S, lang, onClose, onToggleMishna, onTogglePerek }) {
+  if (!p) return null;
+  const masName = window.masName;
+  const col = sederColor(window.SEDER_ORDER.indexOf(p.seder));
+  const done = p[person + "_done"];
+  const learned = new Set(window.learnedMishnayos(p, person));
+  return (
+    <div className="msheet-overlay" onClick={onClose}>
+      <div className="msheet-card" onClick={e => e.stopPropagation()}
+        style={{ "--mc": col.c, "--md2": col.d, "--mon": col.on }}>
+        <div className="msheet-head">
+          <span className="dot" style={{ background: col.c }} />
+          <div className="tt">
+            <div className="t">{MAS_EMOJI[p.masechta] || ""} {masName(p.masechta, lang)} · {S.perekWord} {p.perek_num}</div>
+            <div className="s">{S.mishnaProgress(learned.size, p.mishna_count)}</div>
+          </div>
+          <button className="x" onClick={onClose} aria-label="close"><DIcon d={DP.x} w={18} s={2.6} /></button>
+        </div>
+        <div className="msheet-grid">
+          {Array.from({ length: p.mishna_count }, (_, i) => i + 1).map(n => {
+            const on = learned.has(n);
+            return (
+              <button key={n} className={"mtile" + (on ? " done" : "")}
+                style={on ? { background: col.c, color: col.on, boxShadow: "0 3px 0 " + col.d } : null}
+                onClick={() => onToggleMishna(p, n)}
+                aria-label={p.masechta + " " + p.perek_num + " mishna " + n} aria-pressed={on}>
+                {n}
+              </button>
+            );
+          })}
+        </div>
+        <button className={"msheet-all" + (done ? " un" : "")} onClick={() => onTogglePerek(p)}>
+          <DIcon d={done ? DP.x : DP.check} w={18} s={2.8} />
+          {done ? S.unmarkPerek : S.markPerek}
+        </button>
       </div>
     </div>
   );
@@ -244,6 +291,7 @@ function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, c
                         return (
                           <TrailNode key={p.perek_id} p={p} col={col} nums={nums}
                             done={p[person + "_done"]} current={p.perek_id === currentId}
+                            partial={p.mishna_count ? window.learnedMishnayos(p, person).length / p.mishna_count : 0}
                             offset={AMP[i % AMP.length]} onToggle={onToggle} onRead={onRead} readLabel={S.read} />
                         );
                       })}
@@ -269,4 +317,4 @@ function PathView({ S, lang, groups, person, onToggle, onRead, chestTap, nums, c
   );
 }
 
-Object.assign(window, { DIcon, DP, SEDER_COLORS, sederColor, SEDER_EMOJI, MAS_EMOJI, CONFETTI_COLORS, PathView, Celebration, AuthGate });
+Object.assign(window, { DIcon, DP, SEDER_COLORS, sederColor, SEDER_EMOJI, MAS_EMOJI, CONFETTI_COLORS, PathView, Celebration, AuthGate, MishnaSheet });

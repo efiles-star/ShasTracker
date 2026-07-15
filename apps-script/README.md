@@ -13,8 +13,17 @@ frontend reads and writes (`doGet` / `doPost`). This clones the Shabbat website'
    (Pesachim, Sukkah, Avot, Sanhedrin, Makkot) already marked `TRUE`.
 
 The columns are: `seder`, `masechta`, `perek_num`, `perek_id`, `eman_done`, `eman_date`,
-`yehuda_done`, `yehuda_date`. The script looks columns up **by header name**, so you can
-reorder them, but don't rename them.
+`yehuda_done`, `yehuda_date`, `eman_mishnayos`, `yehuda_mishnayos`. The script looks
+columns up **by header name**, so you can reorder them, but don't rename them.
+
+> **Migrating an existing Sheet (adding mishnayos sub-tasks):** no re-seeding needed —
+> just add two columns anywhere in the `Shas` tab with the exact headers
+> `eman_mishnayos` and `yehuda_mishnayos` (leave every row blank), paste the updated
+> [`Code.gs`](Code.gs), and re-deploy (**Deploy → Manage deployments → edit → New
+> version**). Each cell holds that person's learned mishna numbers for an in-progress
+> perek, e.g. `1,3,4`. A perek with `..._done = TRUE` counts as all mishnayos learned,
+> so the list stays blank for completed perakim. The columns are optional — without
+> them everything still works, mishna-level progress just isn't saved.
 
 > **Dates:** seeded completions are left blank (real dates unknown). New marks made from
 > the dashboard auto-fill today's date; you can also backfill real dates in the Sheet.
@@ -75,9 +84,10 @@ starts with `PASTE_`).
 
 ## Contract (what the frontend expects)
 
-**`GET`** → `{ perakim: [ { perek_id, seder, masechta, perek_num, eman_done, eman_date, yehuda_done, yehuda_date } ] }`
+**`GET`** → `{ perakim: [ { perek_id, seder, masechta, perek_num, eman_done, eman_date, yehuda_done, yehuda_date, eman_mishnayos, yehuda_mishnayos } ] }`
+(`*_mishnayos` are comma-separated learned mishna numbers, `""` when none or when the perek is done)
 
-**`POST`** body `{ perek_id, person: "eman"|"yehuda", done: boolean, date: "YYYY-MM-DD"|null, password: string }` → `{ ok: true }`,
+**`POST`** body `{ perek_id, person: "eman"|"yehuda", done: boolean, date: "YYYY-MM-DD"|null, mishnayos: "1,3,4"|"", password: string }` → `{ ok: true }`,
 or `{ ok: false, error: "bad password" }` (also returned for a missing/empty `password` field) if it doesn't match the
 `WRITE_PASSWORD` script property.
 
