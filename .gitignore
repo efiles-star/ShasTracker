@@ -1,0 +1,7 @@
+node_modules/
+
+# clasp: the real project pointer and login credentials never belong in git.
+# Commit .clasp.json.example instead; the CI workflow writes a real .clasp.json
+# from repo secrets at deploy time.
+.clasp.json
+.clasprc.json

@@ -1,0 +1,6 @@
+# clasp pushes everything under rootDir by default. Restrict it to just the
+# Apps Script manifest and source, so docs/notes in apps-script/ are never
+# pushed to the live project. Patterns are matched against rootDir contents.
+**/**
+!appsscript.json
+!Code.gs

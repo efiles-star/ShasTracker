@@ -1,0 +1,72 @@
+name: Deploy Apps Script
+
+# Automatically pushes apps-script/Code.gs to the live Google Apps Script
+# project (and, optionally, rolls the web-app deployment to a new version) on
+# every push to main that touches the backend. This replaces the manual
+# "copy Code.gs into the editor → Manage deployments → New version" dance.
+#
+# One-time setup (repo Settings → Secrets and variables → Actions):
+#   CLASP_CREDENTIALS  (required) — contents of your local ~/.clasprc.json,
+#                       produced by running `clasp login` once on your machine.
+#   SCRIPT_ID          (required) — the Apps Script project's Script ID
+#                       (Apps Script editor → Project Settings → "Script ID").
+#   DEPLOYMENT_ID      (optional) — the web-app deployment to update so the
+#                       live /exec URL picks up changes. Find it with
+#                       `clasp deployments`. If unset, code is pushed only and
+#                       you bump the version yourself in Manage deployments.
+# Also enable the Apps Script API once: https://script.google.com/home/usersettings
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps-script/**"
+      - ".github/workflows/apps-script-deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: Authenticate clasp
+        env:
+          CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+        run: |
+          if [ -z "$CLASP_CREDENTIALS" ]; then
+            echo "::error::CLASP_CREDENTIALS secret is not set. Run 'clasp login' locally and paste ~/.clasprc.json into the secret."
+            exit 1
+          fi
+          printf '%s' "$CLASP_CREDENTIALS" > "$HOME/.clasprc.json"
+
+      - name: Write .clasp.json
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          if [ -z "$SCRIPT_ID" ]; then
+            echo "::error::SCRIPT_ID secret is not set."
+            exit 1
+          fi
+          printf '{ "scriptId": "%s", "rootDir": "apps-script" }\n' "$SCRIPT_ID" > .clasp.json
+
+      - name: Push code to the Apps Script project
+        run: clasp push --force
+
+      - name: Update the web-app deployment
+        env:
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        run: |
+          if [ -n "$DEPLOYMENT_ID" ]; then
+            clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "CI ${GITHUB_SHA::7}"
+            echo "Rolled deployment $DEPLOYMENT_ID to a new version — /exec URL is live."
+          else
+            echo "DEPLOYMENT_ID not set — code pushed only. Bump the version in the Apps Script editor (Manage deployments) to update the live /exec URL."
+          fi
